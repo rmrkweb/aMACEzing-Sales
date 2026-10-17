@@ -1,3 +1,4 @@
+
 package com.example.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
@@ -58,7 +59,9 @@ fun SalesAndProfitTrendChart(
             .fillMaxWidth()
             .testTag("sales_trend_chart_card"),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -75,15 +78,31 @@ fun SalesAndProfitTrendChart(
 
                 // Legend
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(10.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(Color(0xFF00B8F0), CircleShape)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Net Sales", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Net Sales",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    Box(modifier = Modifier.size(10.dp).background(SecondaryAmber, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(Color(0xFFA78BFA), CircleShape)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Profit", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Profit",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -103,8 +122,15 @@ fun SalesAndProfitTrendChart(
                     )
                 }
             } else {
-                val maxVal = (data.maxOfOrNull { maxOf(it.value, it.secondaryValue) } ?: 1.0).coerceAtLeast(100.0)
-                val primaryColor = MaterialTheme.colorScheme.primary
+                val maxVal = (
+                    data.maxOfOrNull {
+                        maxOf(it.value, it.secondaryValue)
+                    } ?: 1.0
+                ).coerceAtLeast(100.0)
+
+                // Separate colors for the chart bars
+                val salesColor = Color(0xFF00B8F0)
+                val profitColor = Color(0xFFA78BFA)
 
                 Canvas(
                     modifier = Modifier
@@ -125,25 +151,30 @@ fun SalesAndProfitTrendChart(
                     )
 
                     data.forEachIndexed { index, item ->
-                        val groupCenterX = (index * groupWidth) + (groupWidth / 2f)
+                        val groupCenterX =
+                            (index * groupWidth) + (groupWidth / 2f)
 
-                        // Sales bar
-                        val salesHeight = ((item.value / maxVal) * (canvasHeight - 10f)).toFloat()
+                        // Net Sales bar - Cyan
+                        val salesHeight =
+                            ((item.value / maxVal) * (canvasHeight - 10f)).toFloat()
                         val salesLeft = groupCenterX - barWidth - 2f
                         val salesTop = canvasHeight - salesHeight
+
                         drawRoundRect(
-                            color = primaryColor,
+                            color = salesColor,
                             topLeft = Offset(salesLeft, salesTop),
                             size = Size(barWidth, salesHeight),
                             cornerRadius = CornerRadius(4f, 4f)
                         )
 
-                        // Profit bar
-                        val profitHeight = ((item.secondaryValue / maxVal) * (canvasHeight - 10f)).toFloat()
+                        // Profit bar - Violet
+                        val profitHeight =
+                            ((item.secondaryValue / maxVal) * (canvasHeight - 10f)).toFloat()
                         val profitLeft = groupCenterX + 2f
                         val profitTop = canvasHeight - profitHeight
+
                         drawRoundRect(
-                            color = SecondaryAmber,
+                            color = profitColor,
                             topLeft = Offset(profitLeft, profitTop),
                             size = Size(barWidth, profitHeight),
                             cornerRadius = CornerRadius(4f, 4f)
@@ -182,7 +213,9 @@ fun BusinessComparisonCard(
             .fillMaxWidth()
             .testTag("business_comparison_chart_card"),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -194,7 +227,12 @@ fun BusinessComparisonCard(
             Spacer(modifier = Modifier.height(14.dp))
 
             val totalNet = engravingMetrics.netSales + sintraMetrics.netSales
-            val engSalesPercent = if (totalNet > 0.0) (engravingMetrics.netSales / totalNet) else 0.5
+            val engSalesPercent =
+                if (totalNet > 0.0) {
+                    engravingMetrics.netSales / totalNet
+                } else {
+                    0.5
+                }
 
             // Proportion bar
             Column {
@@ -215,7 +253,9 @@ fun BusinessComparisonCard(
                         color = SintraBoardBlue
                     )
                 }
+
                 Spacer(modifier = Modifier.height(6.dp))
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -224,7 +264,9 @@ fun BusinessComparisonCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(engSalesPercent.toFloat().coerceIn(0.05f, 0.95f))
+                            .fillMaxWidth(
+                                engSalesPercent.toFloat().coerceIn(0.05f, 0.95f)
+                            )
                             .height(10.dp)
                             .background(EngravingBrown)
                     )
@@ -248,30 +290,78 @@ fun BusinessComparisonCard(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .background(EngravingBrown.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                        .background(
+                            EngravingBrown.copy(alpha = 0.08f),
+                            RoundedCornerShape(12.dp)
+                        )
                         .padding(12.dp)
                 ) {
-                    Text("Engraving", fontWeight = FontWeight.Bold, color = EngravingBrown, fontSize = 13.sp)
+                    Text(
+                        "Engraving",
+                        fontWeight = FontWeight.Bold,
+                        color = EngravingBrown,
+                        fontSize = 13.sp
+                    )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("Net: ${Formatters.formatCurrency(engravingMetrics.netSales)}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Text("Profit: ${Formatters.formatCurrency(engravingMetrics.estimatedProfit)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Margin: ${Formatters.formatPercent(engravingMetrics.profitMarginPercent)}", fontSize = 11.sp, color = SecondaryAmber)
-                    Text("Orders: ${engravingMetrics.ordersCount}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Net: ${Formatters.formatCurrency(engravingMetrics.netSales)}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        "Profit: ${Formatters.formatCurrency(engravingMetrics.estimatedProfit)}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Margin: ${Formatters.formatPercent(engravingMetrics.profitMarginPercent)}",
+                        fontSize = 11.sp,
+                        color = SecondaryAmber
+                    )
+                    Text(
+                        "Orders: ${engravingMetrics.ordersCount}",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 // Sintra Board column
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .background(SintraBoardBlue.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                        .background(
+                            SintraBoardBlue.copy(alpha = 0.08f),
+                            RoundedCornerShape(12.dp)
+                        )
                         .padding(12.dp)
                 ) {
-                    Text("Sintra Board", fontWeight = FontWeight.Bold, color = SintraBoardBlue, fontSize = 13.sp)
+                    Text(
+                        "Sintra Board",
+                        fontWeight = FontWeight.Bold,
+                        color = SintraBoardBlue,
+                        fontSize = 13.sp
+                    )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("Net: ${Formatters.formatCurrency(sintraMetrics.netSales)}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Text("Profit: ${Formatters.formatCurrency(sintraMetrics.estimatedProfit)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Margin: ${Formatters.formatPercent(sintraMetrics.profitMarginPercent)}", fontSize = 11.sp, color = SecondaryAmber)
-                    Text("Orders: ${sintraMetrics.ordersCount}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Net: ${Formatters.formatCurrency(sintraMetrics.netSales)}",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        "Profit: ${Formatters.formatCurrency(sintraMetrics.estimatedProfit)}",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Margin: ${Formatters.formatPercent(sintraMetrics.profitMarginPercent)}",
+                        fontSize = 11.sp,
+                        color = SecondaryAmber
+                    )
+                    Text(
+                        "Orders: ${sintraMetrics.ordersCount}",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -288,7 +378,9 @@ fun ProductSalesBreakdownCard(
             .fillMaxWidth()
             .testTag("product_sales_breakdown_card"),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -306,10 +398,18 @@ fun ProductSalesBreakdownCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
-                val maxSales = (stats.maxOfOrNull { it.totalSales } ?: 1.0).coerceAtLeast(1.0)
+                val maxSales =
+                    (stats.maxOfOrNull { it.totalSales } ?: 1.0)
+                        .coerceAtLeast(1.0)
+
                 stats.take(5).forEach { stat ->
                     val progress = (stat.totalSales / maxSales).toFloat()
-                    val barColor = if (stat.businessType == BusinessType.ENGRAVING) EngravingBrown else SintraBoardBlue
+                    val barColor =
+                        if (stat.businessType == BusinessType.ENGRAVING) {
+                            EngravingBrown
+                        } else {
+                            SintraBoardBlue
+                        }
 
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         Row(
@@ -330,7 +430,9 @@ fun ProductSalesBreakdownCard(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+
                         Spacer(modifier = Modifier.height(4.dp))
+
                         LinearProgressIndicator(
                             progress = { progress },
                             modifier = Modifier
@@ -354,14 +456,21 @@ fun PaidVsUnpaidCard(
     modifier: Modifier = Modifier
 ) {
     val totalBillable = totalCollected + outstandingReceivables
-    val collectionRate = if (totalBillable > 0.0) (totalCollected / totalBillable) * 100.0 else 100.0
+    val collectionRate =
+        if (totalBillable > 0.0) {
+            (totalCollected / totalBillable) * 100.0
+        } else {
+            100.0
+        }
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .testTag("paid_vs_unpaid_card"),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -403,20 +512,45 @@ fun PaidVsUnpaidCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(10.dp).background(StatusPaid, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(StatusPaid, CircleShape)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Column {
-                        Text("Collected Cash", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(Formatters.formatCurrency(totalCollected), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(
+                            "Collected Cash",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            Formatters.formatCurrency(totalCollected),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
                     }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(10.dp).background(StatusPending, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(StatusPending, CircleShape)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Column {
-                        Text("Outstanding Receivables", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(Formatters.formatCurrency(outstandingReceivables), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = StatusPending)
+                        Text(
+                            "Outstanding Receivables",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            Formatters.formatCurrency(outstandingReceivables),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = StatusPending
+                        )
                     }
                 }
             }
