@@ -180,8 +180,10 @@ fun MainAppScaffold(
             val firestoreRepo = FirestoreSalesRepository(context)
             firestoreRepo.saveUserProfile()
         } catch (_: Exception) {
-            // Handled via firestore error logger
+            // Profile sync can be retried later if offline.
         }
+        // Restore cloud backup before the user manually syncs an empty fresh installation.
+        viewModel.restoreFromCloudIfLocalEmpty()
     }
 
     LaunchedEffect(snackbarMsg) {
