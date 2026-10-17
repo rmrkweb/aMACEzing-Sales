@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TransactionDao {
 
+    @Query("SELECT COUNT(*) FROM transactions")
+    suspend fun countTransactions(): Int
+
     @Transaction
     @Query("SELECT * FROM transactions ORDER BY orderDateEpochMillis DESC, createdAt DESC")
     fun getAllTransactionsWithDetails(): Flow<List<TransactionWithDetails>>

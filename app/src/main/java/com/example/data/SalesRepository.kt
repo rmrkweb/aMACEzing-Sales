@@ -223,6 +223,38 @@ class SalesRepository(private val database: AppDatabase) {
         }
     }
 
+
+    /** True when this installation has no real sales/customer data to protect from a cloud restore. */
+    suspend fun isLocalSalesDataEmpty(): Boolean = withContext(Dispatchers.IO) {
+        transactionDao.countTransactions() == 0 && customerDao.countCustomers() == 0
+    }
+
+    /** Merge cloud records into Room without deleting local rows. Used only for first-install recovery. */
+    suspend fun restoreCloudRecords(
+        products: List<com.example.data.firebase.FirestoreProduct>,
+        customers: List<com.example.data.firebase.FirestoreCustomer>,
+        transactions: List<com.example.data.firebase.FirestoreTransaction>,
+        cloudSettings: com.example.data.firebase.FirestoreSettings?
+    ) = withContext(Dispatchers.IO) {
+        val mapper = com.example.data.firebase.FirestoreMappers
+        val restoredCustomers = customers.map { mapper.run { it.toRoomCustomer() } }
+        if (restoredCustomers.isNotEmpty()) customerDao.insertCustomers(restoredCustomers)
+
+        val restoredProducts = products.map { mapper.run { it.toRoomProduct() } }
+        if (restoredProducts.isNotEmpty()) productDao.insertProducts(restoredProducts)
+
+        val customerIdByName = restoredCustomers.associate { it.name.trim().lowercase() to it.id }
+        val restoredTransactions = transactions.map { remote ->
+            val customerId = customerIdByName[remote.customerName.trim().lowercase()]
+            mapper.run { remote.toRoomTransaction(customerId) }
+        }
+        if (restoredTransactions.isNotEmpty()) transactionDao.insertTransactions(restoredTransactions)
+
+        if (cloudSettings != null) {
+            settingsDao.insertOrUpdate(mapper.run { cloudSettings.toRoomSettings(id = 1) })
+        }
+    }
+
     suspend fun seedInitialCatalogIfEmpty() {
         withContext(Dispatchers.IO) {
             AppDatabase.populateInitialData(database)

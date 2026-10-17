@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CustomerDao {
+    @Query("SELECT COUNT(*) FROM customers")
+    suspend fun countCustomers(): Int
+
     @Query("SELECT * FROM customers ORDER BY name ASC")
     fun getAllCustomers(): Flow<List<Customer>>
 
