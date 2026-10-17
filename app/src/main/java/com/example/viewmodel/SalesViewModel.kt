@@ -161,6 +161,33 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Restore the user's Firestore backup on a fresh install before normal sync can upload empty Room data. */
+    fun restoreFromCloudIfLocalEmpty() {
+        viewModelScope.launch {
+            try {
+                if (!repository.isLocalSalesDataEmpty()) return@launch
+                _syncStatus.value = SyncStatus.SYNCING
+                val remoteProducts = firestoreRepo.getProducts()
+                val remoteCustomers = firestoreRepo.getCustomers()
+                val remoteTransactions = firestoreRepo.getTransactions()
+                val remoteSettings = firestoreRepo.getSettings()
+
+                // Do not mark this as restored unless Firestore actually returned data.
+                if (remoteProducts.isEmpty() && remoteCustomers.isEmpty() && remoteTransactions.isEmpty() && remoteSettings == null) {
+                    _syncStatus.value = SyncStatus.SYNCED
+                    return@launch
+                }
+
+                repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings)
+                _syncStatus.value = SyncStatus.SYNCED
+                snackbarMessage.value = "Cloud backup restored to this device."
+            } catch (e: Exception) {
+                _syncStatus.value = SyncStatus.SYNC_ERROR
+                snackbarMessage.value = "Cloud restore failed: ${e.localizedMessage ?: "Please check your connection and try Sync again."}"
+            }
+        }
+    }
+
     fun navigateTo(screen: Screen) {
         if (_currentScreen.value != screen) {
             _screenStack.value = _screenStack.value + screen
@@ -744,6 +771,18 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 _syncStatus.value = SyncStatus.SYNCING
                 val uid = firestoreRepo.requireUserId()
+
+                // On a fresh install, restore first. Never upload empty local lists over the cloud backup.
+                if (repository.isLocalSalesDataEmpty()) {
+                    val remoteProducts = firestoreRepo.getProducts()
+                    val remoteCustomers = firestoreRepo.getCustomers()
+                    val remoteTransactions = firestoreRepo.getTransactions()
+                    val remoteSettings = firestoreRepo.getSettings()
+                    if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteSettings != null) {
+                        repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings)
+                    }
+                }
+
                 firestoreRepo.saveUserProfile()
                 firestoreRepo.seedDefaultBusinessesIfEmpty()
 
