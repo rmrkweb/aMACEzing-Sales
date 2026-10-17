@@ -1,0 +1,127 @@
+name: Android Build & Test (Debug APK)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-debug:
+    name: Build Debug APK & Run Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Make Gradlew Executable
+        run: chmod +x gradlew
+
+      - name: Prepare Debug Keystore
+        run: |
+          if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
+            echo "Decoding debug.keystore from debug.keystore.base64..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          elif [ ! -f debug.keystore ]; then
+            echo "Generating fallback debug keystore..."
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          test -f debug.keystore && echo "debug.keystore ready."
+
+      - name: Prepare Local Environment
+        run: |
+          if [ ! -f .env ]; then
+            echo "Creating empty .env from .env.example..."
+            cp .env.example .env 2>/dev/null || touch .env
+          fi
+
+      # PRIMARY BUILD STEP: Build Debug APK first so compile/assembly takes priority
+      
+      - name: Configure Firebase
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "Missing GOOGLE_SERVICES_JSON GitHub secret."
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+
+      
+
+      - name: Build Debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+      - name: Show Debug SHA-1
+        run: ./gradlew :app:signingReport --no-daemon
+      - name: Verify Debug APK Output
+        run: |
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            echo "Debug APK successfully created at $APK_PATH"
+            ls -lh "$APK_PATH"
+          else
+            echo "Error: Debug APK not found at $APK_PATH"
+            exit 1
+          fi
+
+      # Upload the Debug APK immediately upon successful assembly
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aMACEzing-Sales-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      # UNIT TEST STEP: Conditionally executed if test files exist, does not block APK artifact
+      - name: Run Unit Tests
+        id: run_unit_tests
+        continue-on-error: true
+        run: |
+          TEST_FILES=$(find app/src/test -type f \( -name "*Test.kt" -o -name "*Test.java" \) 2>/dev/null || true)
+          if [ -z "$TEST_FILES" ]; then
+            echo "No unit tests configured in app/src/test. Skipping unit test execution gracefully."
+          else
+            echo "Discovered unit test files in repository:"
+            echo "$TEST_FILES"
+            echo "Executing :app:testDebugUnitTest..."
+            ./gradlew :app:testDebugUnitTest --no-daemon
+          fi
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Build Reports on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-failure-reports
+          path: |
+            app/build/reports/
+            app/build/outputs/logs/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,217 @@
+package com.example.ui.components
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.model.BusinessType
+import com.example.model.Product
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProductDialog(
+    initialProduct: Product? = null,
+    defaultBusinessType: BusinessType = BusinessType.ENGRAVING,
+    onSave: (Product) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(initialProduct?.name ?: "") }
+    var businessType by remember { mutableStateOf(initialProduct?.businessType ?: defaultBusinessType) }
+    var businessDropdownExpanded by remember { mutableStateOf(false) }
+    var sellingPriceText by remember { mutableStateOf(initialProduct?.sellingPrice?.toString() ?: "") }
+    var unitCostText by remember { mutableStateOf(initialProduct?.unitCost?.toString() ?: "") }
+    var isActive by remember { mutableStateOf(initialProduct?.isActive ?: true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = if (initialProduct == null) "Add New Product" else "Edit Product",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                ExposedDropdownMenuBox(
+                    expanded = businessDropdownExpanded,
+                    onExpandedChange = { businessDropdownExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = businessType.displayName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Business *") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = businessDropdownExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                            .testTag("product_business_dropdown")
+                    )
+                    ExposedDropdownMenu(
+                        expanded = businessDropdownExpanded,
+                        onDismissRequest = { businessDropdownExpanded = false }
+                    ) {
+                        BusinessType.values().forEach { bType ->
+                            DropdownMenuItem(
+                                text = { Text(bType.displayName) },
+                                onClick = {
+                                    businessType = bType
+                                    businessDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        errorMessage = null
+                    },
+                    label = { Text("Product Name *") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("product_name_input")
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = sellingPriceText,
+                    onValueChange = {
+                        sellingPriceText = it
+                        errorMessage = null
+                    },
+                    label = { Text("Selling Price (₱) *") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("product_selling_price_input")
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = unitCostText,
+                    onValueChange = {
+                        unitCostText = it
+                        errorMessage = null
+                    },
+                    label = { Text("Unit Cost (₱)") },
+                    supportingText = {
+                        Text(
+                            text = if (businessType == BusinessType.ENGRAVING)
+                                "Captured on future sales. Profit = Selling Price - Cost."
+                            else
+                                "Optional for Sintra. If omitted, uses configured margin %.",
+                            fontSize = 11.sp
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("product_unit_cost_input")
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Active in catalog",
+                        modifier = Modifier.weight(1f),
+                        fontSize = 14.sp
+                    )
+                    Switch(
+                        checked = isActive,
+                        onCheckedChange = { isActive = it },
+                        modifier = Modifier.testTag("product_active_switch")
+                    )
+                }
+
+                if (errorMessage != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = errorMessage ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isBlank()) {
+                        errorMessage = "Product name cannot be empty."
+                        return@Button
+                    }
+                    val selling = sellingPriceText.toDoubleOrNull()
+                    if (selling == null || selling < 0.0) {
+                        errorMessage = "Please enter a valid selling price."
+                        return@Button
+                    }
+                    val cost = unitCostText.toDoubleOrNull() ?: 0.0
+
+                    val product = initialProduct?.copy(
+                        name = name.trim(),
+                        businessType = businessType,
+                        sellingPrice = selling,
+                        unitCost = cost,
+                        isActive = isActive
+                    ) ?: Product(
+                        name = name.trim(),
+                        businessType = businessType,
+                        sellingPrice = selling,
+                        unitCost = cost,
+                        isActive = isActive
+                    )
+                    onSave(product)
+                },
+                modifier = Modifier.testTag("save_product_button")
+            ) {
+                Text("Save Product")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("cancel_product_button")
+            ) {
+                Text("Cancel")
+            }
+        }
+    )
+}
