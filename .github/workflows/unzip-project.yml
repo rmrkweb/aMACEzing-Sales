@@ -80,4 +80,3 @@ jobs:
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
           git push origin HEAD:main
-
