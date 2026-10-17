@@ -203,3 +203,11 @@ If you want to connect a custom Firebase project:
 
 ### `Unsupported class file major version`
 - Ensure the runner or your local workstation uses **Java 17 or Java 21**. Gradle 9.3.1 requires Java 17+. The GitHub Actions workflow explicitly specifies `java-version: '21'` with `distribution: 'temurin'`.
+
+## Cloud-to-local restore fix (October 2026)
+
+The app now attempts to restore existing Firestore products, customers, transactions, and settings into Room after sign-in when this installation has no local transactions/customers. Manual Sync also attempts that restore before uploading local records, preventing an empty fresh installation from immediately uploading empty lists over the cloud backup. Restoration merges records and does not clear local tables.
+
+Important limitation: the current Firestore transaction model stores only `lineItemsSummary` (a text summary), not structured transaction line items or individual payment records. Restored transactions retain their sales totals and aggregate payment fields, but line-item breakdowns and payment history cannot be reconstructed from the existing cloud schema. To restore those exactly, the app must also sync structured line-item and payment documents in a separate schema migration.
+
+Build validation could not be completed in the editing environment because Gradle distribution download requires network access. Run the project's GitHub Actions Android build before installing the new APK.
