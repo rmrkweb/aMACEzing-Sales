@@ -3,14 +3,9 @@ name: Extract Android Project ZIP
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 permissions:
   contents: write
-  actions: read
-  workflows: write
 
 jobs:
   extract:
@@ -46,26 +41,23 @@ jobs:
             exit 1
           fi
 
-          echo "Extracting project from: $PROJECT_DIR"
-
           cp -a "$PROJECT_DIR"/. .
           rm -rf extracted
 
           if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
-            echo "ERROR: Gradle settings file not found after extraction."
+            echo "ERROR: Gradle settings file not found."
             exit 1
           fi
 
           if [ ! -f "gradlew" ]; then
-            echo "ERROR: Gradle wrapper gradlew was not found."
+            echo "ERROR: Gradle wrapper not found."
             exit 1
           fi
 
           chmod +x gradlew
-
           echo "Project extraction completed successfully."
 
-      - name: Commit extracted project
+      - name: Commit and push extracted project
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.REPO_TOKEN }}
@@ -88,3 +80,4 @@ jobs:
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
           git push origin HEAD:main
+
