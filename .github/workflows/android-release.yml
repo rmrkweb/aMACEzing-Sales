@@ -39,6 +39,26 @@ jobs:
             cp .env.example .env 2>/dev/null || touch .env
           fi
 
+      - name: Configure Firebase
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            if echo "$GOOGLE_SERVICES_JSON" | base64 -d 2>/dev/null | grep -q '"project_info"'; then
+              echo "Configuring Firebase from Base64-encoded GOOGLE_SERVICES_JSON..."
+              echo "$GOOGLE_SERVICES_JSON" | base64 -d > app/google-services.json
+            else
+              echo "Configuring Firebase from raw GOOGLE_SERVICES_JSON..."
+              printf '%s\n' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            fi
+          elif [ -f app/google-services.json ]; then
+            echo "GOOGLE_SERVICES_JSON secret not set; using local app/google-services.json"
+          else
+            echo "::error::Missing GOOGLE_SERVICES_JSON GitHub secret and app/google-services.json not found."
+            exit 1
+          fi
+          test -f app/google-services.json && echo "app/google-services.json successfully configured."
+
       - name: Configure Release Keystore & Secrets
         id: signing_check
         run: |
