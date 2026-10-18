@@ -159,13 +159,13 @@ When you run **Android Release APK Build**, the workflow will automatically deco
 The project uses Firebase Cloud Firestore and Authentication.
 
 ### Configuration Status
-- `app/google-services.json` is bundled in the application module with package name `com.example`.
+- `app/google-services.json` is bundled in the application module with package name `com.amacezing.sales`.
 - In `app/build.gradle.kts`, `missingGoogleServicesStrategy = MissingGoogleServicesStrategy.WARN` is configured so that missing credentials provide clear warnings rather than unrecoverable build crashes.
 
 ### Linking Your Own Firebase Project
 If you want to connect a custom Firebase project:
 1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Create a project and add an Android app with package name `com.example`.
+2. Create a project and add an Android app with package name `com.amacezing.sales`.
 3. Add your SHA-1 fingerprint (from your debug or release keystore).
    - For `debug.keystore`, run:
      ```bash

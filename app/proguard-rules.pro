@@ -1,10 +1,10 @@
 # ProGuard and R8 rules for aMACEzing Sales
 
 # Keep data models used by Room, Moshi, and Firestore
--keepclassmembers class com.example.model.** { *; }
--keep class com.example.model.** { *; }
--keepclassmembers class com.example.data.firebase.** { *; }
--keep class com.example.data.firebase.** { *; }
+-keepclassmembers class com.amacezing.sales.model.** { *; }
+-keep class com.amacezing.sales.model.** { *; }
+-keepclassmembers class com.amacezing.sales.data.firebase.** { *; }
+-keep class com.amacezing.sales.data.firebase.** { *; }
 
 # Moshi rules
 -keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod

@@ -10,6 +10,9 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+build/
+app/build/
+**/build/
 /captures
 .externalNativeBuild
 .cxx
@@ -17,3 +20,4 @@ local.properties
 .env
 debug.keystore
 *-debug.log
+.build-outputs/
