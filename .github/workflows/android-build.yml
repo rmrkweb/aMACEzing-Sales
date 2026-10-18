@@ -1,138 +1,259 @@
 name: Android Build & Test (Debug APK)
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - 'WF-**'
-  pull_request:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
+push:
+branches:
+- main
+- master
+- 'WF-**'
+pull_request:
+branches:
+- main
+- master
+workflow_dispatch:
 
 jobs:
-  build-debug:
-    name: Build Debug APK & Run Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+build-debug:
+name: Build Debug APK & Run Unit Tests
+runs-on: ubuntu-latest
+timeout-minutes: 30
 
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+steps:
+  - name: Check out repository
+    uses: actions/checkout@v4
 
-      - name: Set up JDK 21 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
+  - name: Set up JDK 21 (Temurin)
+    uses: actions/setup-java@v4
+    with:
+      distribution: 'temurin'
+      java-version: '21'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: false
+  - name: Set up Gradle
+    uses: gradle/actions/setup-gradle@v4
+    with:
+      cache-read-only: false
 
-      - name: Make Gradlew Executable
-        run: chmod +x gradlew
+  - name: Make Gradlew Executable
+    run: chmod +x gradlew
 
-      - name: Prepare Debug Keystore
-        run: |
-          if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
-            echo "Decoding debug.keystore from debug.keystore.base64..."
-            base64 -d debug.keystore.base64 > debug.keystore
-          elif [ ! -f debug.keystore ]; then
-            echo "Generating fallback debug keystore..."
-            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          fi
-          test -f debug.keystore && echo "debug.keystore ready."
+  - name: Prepare Debug Keystore
+    shell: bash
+    run: |
+      set -euo pipefail
 
-      - name: Prepare Local Environment
-        run: |
-          if [ ! -f .env ]; then
-            echo "Creating empty .env from .env.example..."
-            cp .env.example .env 2>/dev/null || touch .env
-          fi
+      if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
+        echo "Decoding debug.keystore from debug.keystore.base64..."
+        base64 -d debug.keystore.base64 > debug.keystore
+      elif [ ! -f debug.keystore ]; then
+        echo "Generating fallback debug keystore..."
+        keytool -genkey -v \
+          -keystore debug.keystore \
+          -storepass android \
+          -alias androiddebugkey \
+          -keypass android \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -dname "CN=Android Debug,O=Android,C=US"
+      fi
 
-      # PRIMARY BUILD STEP: Build Debug APK first so compile/assembly takes priority
+      test -f debug.keystore
+      echo "debug.keystore ready."
 
-      - name: Configure Firebase
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            if echo "$GOOGLE_SERVICES_JSON" | base64 -d 2>/dev/null | grep -q '"project_info"'; then
-              echo "Configuring Firebase from Base64-encoded GOOGLE_SERVICES_JSON..."
-              echo "$GOOGLE_SERVICES_JSON" | base64 -d > app/google-services.json
-            else
-              echo "Configuring Firebase from raw GOOGLE_SERVICES_JSON..."
-              printf '%s\n' "$GOOGLE_SERVICES_JSON" > app/google-services.json
-            fi
-          elif [ -f app/google-services.json ]; then
-            echo "GOOGLE_SERVICES_JSON secret not set; using local app/google-services.json"
-          else
-            echo "::error::Missing GOOGLE_SERVICES_JSON GitHub secret and app/google-services.json not found."
-            exit 1
-          fi
-          test -f app/google-services.json && echo "app/google-services.json successfully configured."
+  - name: Prepare Local Environment
+    shell: bash
+    run: |
+      set -euo pipefail
 
-      
+      if [ ! -f .env ]; then
+        echo "Creating empty .env from .env.example..."
+        cp .env.example .env 2>/dev/null || touch .env
+      fi
 
-      - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --no-daemon
-      - name: Show Debug SHA-1
-        run: ./gradlew :app:signingReport --no-daemon
-      - name: Verify Debug APK Output
-        run: |
-          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$APK_PATH" ]; then
-            echo "Debug APK successfully created at $APK_PATH"
-            ls -lh "$APK_PATH"
-          else
-            echo "Error: Debug APK not found at $APK_PATH"
-            exit 1
-          fi
+  # Validate Firebase configuration before Gradle starts.
+  - name: Configure Firebase
+    env:
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+    shell: bash
+    run: |
+      set -euo pipefail
 
-      # Upload the Debug APK immediately upon successful assembly
-      - name: Upload Debug APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: aMACEzing-Sales-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
+      mkdir -p app
 
-      # UNIT TEST STEP: Conditionally executed if test files exist, does not block APK artifact
-      - name: Run Unit Tests
-        id: run_unit_tests
-        continue-on-error: true
-        run: |
-          TEST_FILES=$(find app/src/test -type f \( -name "*Test.kt" -o -name "*Test.java" \) 2>/dev/null || true)
-          if [ -z "$TEST_FILES" ]; then
-            echo "No unit tests configured in app/src/test. Skipping unit test execution gracefully."
-          else
-            echo "Discovered unit test files in repository:"
-            echo "$TEST_FILES"
-            echo "Executing :app:testDebugUnitTest..."
-            ./gradlew :app:testDebugUnitTest --no-daemon
-          fi
+      export FIREBASE_JSON_OUTPUT="$RUNNER_TEMP/google-services.json"
 
-      - name: Upload Test Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-reports
-          path: app/build/reports/tests/
-          if-no-files-found: ignore
-          retention-days: 7
+      if [ -z "${GOOGLE_SERVICES_JSON:-}" ]; then
+        if [ -f app/google-services.json ]; then
+          echo "Firebase secret is unavailable; validating existing configuration."
+          export FIREBASE_JSON_SOURCE="existing"
+        else
+          echo "::error::GOOGLE_SERVICES_JSON is empty or unavailable, and no local Firebase configuration exists."
+          exit 1
+        fi
+      else
+        export FIREBASE_JSON_SOURCE="secret"
+      fi
 
-      - name: Upload Build Reports on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-failure-reports
-          path: |
-            app/build/reports/
-            app/build/outputs/logs/
-          if-no-files-found: ignore
-          retention-days: 7
+      python3 <<'PY'
+      import os
+      import json
+      import base64
+      import binascii
+      import sys
+      from pathlib import Path
+
+      source = os.environ["FIREBASE_JSON_SOURCE"]
+      output = Path(os.environ["FIREBASE_JSON_OUTPUT"])
+
+      if source == "existing":
+          path = Path("app/google-services.json")
+          try:
+              raw = path.read_text(encoding="utf-8-sig")
+          except (OSError, UnicodeError) as exc:
+              print(f"::error::Cannot read existing Firebase configuration: {type(exc).__name__}")
+              sys.exit(1)
+          candidates = [("existing file", raw)]
+      else:
+          raw = os.environ["GOOGLE_SERVICES_JSON"]
+          raw = raw.lstrip("\ufeff")
+          candidates = [("raw JSON", raw)]
+
+          # Try strict Base64 decoding as a separate candidate.
+          try:
+              compact = "".join(raw.split())
+              decoded_bytes = base64.b64decode(compact, validate=True)
+              decoded = decoded_bytes.decode("utf-8-sig")
+              candidates.append(("Base64 JSON", decoded))
+          except (binascii.Error, UnicodeDecodeError, ValueError):
+              pass
+
+      errors = []
+
+      for label, candidate in candidates:
+          try:
+              data = json.loads(candidate)
+
+              if not isinstance(data, dict):
+                  raise ValueError("JSON root must be an object")
+
+              if not isinstance(data.get("project_info"), dict):
+                  raise ValueError("missing or invalid project_info")
+
+              if not isinstance(data.get("client"), list) or not data["client"]:
+                  raise ValueError("missing or invalid client array")
+
+              valid_client = False
+              for client in data["client"]:
+                  if not isinstance(client, dict):
+                      continue
+                  client_info = client.get("client_info")
+                  if not isinstance(client_info, dict):
+                      continue
+                  android_info = client_info.get("android_client_info")
+                  if isinstance(android_info, dict) and android_info.get("package_name"):
+                      valid_client = True
+                      break
+
+              if not valid_client:
+                  raise ValueError("no client with an Android package name was found")
+
+              # Normalize the validated data before writing it.
+              output.write_text(
+                  json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8"
+              )
+
+              print(f"Firebase configuration validated successfully ({label}).")
+              print(f"Validated configuration size: {output.stat().st_size} bytes.")
+              break
+
+          except json.JSONDecodeError as exc:
+              errors.append(
+                  (label, f"JSON parsing failed at line {exc.lineno}, column {exc.colno}")
+              )
+          except ValueError as exc:
+              errors.append((label, str(exc)))
+
+      else:
+          print("::error::Firebase configuration is invalid.")
+          for label, message in errors:
+              print(f"{label}: {message}")
+          sys.exit(1)
+      PY
+
+      install -m 600 "$FIREBASE_JSON_OUTPUT" app/google-services.json
+
+      # Final independent parse check; never print the JSON itself.
+      python3 -c 'import json; json.load(open("app/google-services.json", encoding="utf-8"))'
+
+      echo "app/google-services.json is valid JSON and has the required Firebase structure."
+
+  # PRIMARY BUILD STEP
+  - name: Build Debug APK
+    run: ./gradlew :app:assembleDebug --no-daemon
+
+  - name: Show Debug SHA-1
+    run: ./gradlew :app:signingReport --no-daemon
+
+  - name: Verify Debug APK Output
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+
+      if [ -f "$APK_PATH" ]; then
+        echo "Debug APK successfully created at $APK_PATH"
+        ls -lh "$APK_PATH"
+      else
+        echo "::error::Debug APK not found at $APK_PATH"
+        exit 1
+      fi
+
+  # Upload APK immediately after successful assembly.
+  - name: Upload Debug APK Artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: aMACEzing-Sales-debug-apk
+      path: app/build/outputs/apk/debug/app-debug.apk
+      if-no-files-found: error
+      retention-days: 14
+
+  # UNIT TEST STEP
+  - name: Run Unit Tests
+    id: run_unit_tests
+    continue-on-error: true
+    shell: bash
+    run: |
+      set -euo pipefail
+
+      TEST_FILES=$(find app/src/test -type f \( -name "*Test.kt" -o -name "*Test.java" \) 2>/dev/null || true)
+
+      if [ -z "$TEST_FILES" ]; then
+        echo "No unit tests configured in app/src/test. Skipping unit test execution gracefully."
+      else
+        echo "Discovered unit test files in repository:"
+        printf '%s\n' "$TEST_FILES"
+        echo "Executing :app:testDebugUnitTest..."
+        ./gradlew :app:testDebugUnitTest --no-daemon
+      fi
+
+  - name: Upload Test Reports
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: unit-test-reports
+      path: app/build/reports/tests/
+      if-no-files-found: ignore
+      retention-days: 7
+
+  - name: Upload Build Reports on Failure
+    if: failure()
+    uses: actions/upload-artifact@v4
+    with:
+      name: build-failure-reports
+      path: |
+        app/build/reports/
+        app/build/outputs/logs/
+      if-no-files-found: ignore
+      retention-days: 7
