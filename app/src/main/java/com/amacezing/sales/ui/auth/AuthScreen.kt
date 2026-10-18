@@ -283,46 +283,34 @@ fun AuthScreen(
                         .padding(horizontal = 24.dp, vertical = 28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // --- 1. Authentic Circular Shop Logo ---
-                    Box(
-                        modifier = Modifier
-                            .size(118.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        TechAccentDeepBlue.copy(alpha = 0.35f),
-                                        Color.Transparent
-                                    )
-                                )
-                            )
-                            .border(
-                                BorderStroke(
-                                    1.5.dp,
-                                    Brush.sweepGradient(
-                                        colors = listOf(
-                                            TechAccentCyan.copy(alpha = 0.8f),
-                                            TechAccentDeepBlue,
-                                            Color.White.copy(alpha = 0.9f),
-                                            TechAccentCyan.copy(alpha = 0.8f)
-                                        )
-                                    )
-                                ),
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground_img),
-                            contentDescription = "aMACEzing Logo",
-                            modifier = Modifier
-                                .size(112.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
+                    
+ // --- 1. Authentic Circular Shop Logo ---
+Box(
+    modifier = Modifier
+        .size(118.dp)
+        .clip(CircleShape)
+        .background(
+            Brush.radialGradient(
+                colors = listOf(
+                    TechAccentDeepBlue.copy(alpha = 0.35f),
+                    Color.Transparent
+                )
+            )
+        ),
+    contentAlignment = Alignment.Center
+) {
+    Image(
+        painter = painterResource(
+            id = R.drawable.ic_launcher_foreground_img
+        ),
+        contentDescription = "aMACEzing Logo",
+        modifier = Modifier.size(112.dp),
+        contentScale = ContentScale.Fit
+    )
+}
 
-                    Spacer(modifier = Modifier.height(18.dp))
+Spacer(modifier = Modifier.height(18.dp))
+
 
                     // --- 2. Title: "aMACEzing Sales" ---
                     Row(
