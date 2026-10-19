@@ -20,8 +20,8 @@ android {
     // Injected by CI (-PversionCode / -PversionName); local builds fall back to defaults.
     versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
     versionName = (project.findProperty("versionName") as String?) ?: "1.0"
-    // "owner/repo" of the public GitHub repo holding Releases; empty disables in-app updates.
-    buildConfigField("String", "GITHUB_REPO", "\"${project.findProperty("githubRepo") ?: ""}\"")
+    // "owner/repo" of the public GitHub repo holding Releases; defaults to rmrkweb/aMACEzing-Sales.
+    buildConfigField("String", "GITHUB_REPO", "\"${project.findProperty("githubRepo") ?: "rmrkweb/aMACEzing-Sales"}\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

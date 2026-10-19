@@ -34,6 +34,17 @@ import com.amacezing.sales.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.ui.platform.testTag
 
 sealed interface UpdatePhase {
     data object Idle : UpdatePhase
@@ -110,33 +121,119 @@ fun AutoUpdatePrompt() {
     UpdateDialog(controller)
 }
 
-/** Settings row with current version and a manual "Check for updates" button. */
+/** Settings card with current version information and a manual "Check for updates" option. */
 @Composable
 fun UpdateSettingsCard(modifier: Modifier = Modifier) {
     val controller = rememberUpdateController()
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().testTag("update_settings_card"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("App Version", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "App Version & Updates",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Text(
+                        text = "v${BuildConfig.VERSION_NAME}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "Build code ${BuildConfig.VERSION_CODE} • Channel: GitHub Release",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (BuildConfig.GITHUB_REPO.isNotBlank()) {
                 Text(
-                    "v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Source: github.com/${BuildConfig.GITHUB_REPO}",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
-            OutlinedButton(
-                onClick = { controller.check(silent = false) },
-                enabled = controller.phase !is UpdatePhase.Checking
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (controller.phase is UpdatePhase.Checking) "Checking…" else "Check for updates")
+                Text(
+                    text = when (controller.phase) {
+                        is UpdatePhase.Checking -> "Checking for updates..."
+                        is UpdatePhase.Available -> "Update available!"
+                        is UpdatePhase.UpToDate -> "App is up to date."
+                        is UpdatePhase.Downloading -> "Downloading update..."
+                        is UpdatePhase.Error -> "Check failed. Try again."
+                        else -> "Check for latest release on GitHub"
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Button(
+                    onClick = { controller.check(silent = false) },
+                    enabled = controller.phase !is UpdatePhase.Checking && controller.phase !is UpdatePhase.Downloading,
+                    modifier = Modifier.testTag("check_for_updates_button")
+                ) {
+                    if (controller.phase is UpdatePhase.Checking) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Checking...")
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.CloudDownload,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Check for Updates")
+                    }
+                }
             }
         }
     }

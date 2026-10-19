@@ -61,9 +61,16 @@ object AppUpdater {
                 }
                 val json = JSONObject(resp.body?.string().orEmpty())
                 val tag = json.optString("tag_name")
-                val code = buildRegex.find(tag)?.groupValues?.get(1)?.toIntOrNull()
-                    ?: return@withContext CheckResult.Error("Unrecognised release tag: $tag")
-                if (code <= BuildConfig.VERSION_CODE) return@withContext CheckResult.UpToDate
+                val match = buildRegex.find(tag)
+                val code = match?.groupValues?.get(1)?.toIntOrNull()
+                val cleanVersion = tag.removePrefix("v").replace(buildRegex, "").trim()
+
+                val isNewer = if (code != null) {
+                    code > BuildConfig.VERSION_CODE
+                } else {
+                    cleanVersion != BuildConfig.VERSION_NAME
+                }
+                if (!isNewer) return@withContext CheckResult.UpToDate
 
                 val assets = json.optJSONArray("assets")
                 var apkUrl: String? = null
@@ -83,8 +90,8 @@ object AppUpdater {
                 }
                 CheckResult.Available(
                     UpdateInfo(
-                        versionName = tag.removePrefix("v").replace(buildRegex, ""),
-                        versionCode = code,
+                        versionName = cleanVersion,
+                        versionCode = code ?: (BuildConfig.VERSION_CODE + 1),
                         apkUrl = apkUrl,
                         sizeBytes = size,
                         notes = json.optString("body").trim()

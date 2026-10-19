@@ -1171,6 +1171,14 @@ fun ProfileScreen(
                         }
                     }
                 }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(14.dp))
+                com.amacezing.sales.update.UpdateSettingsCard()
+            }
+
+            item {
                 Spacer(modifier = Modifier.height(70.dp))
             }
         }
