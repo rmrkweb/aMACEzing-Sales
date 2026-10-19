@@ -94,12 +94,12 @@ abstract class AppDatabase : RoomDatabase() {
                         id = "active_profile",
                         businessName = "aMACEzing Printing Services",
                         tagline = "Precision Laser Engraving & Sintra Board Printing Solutions",
-                        ownerName = "",
-                        contactNumber = "",
-                        contactEmail = "",
-                        address = "Bulacan, Philippines",
+                        ownerName = "Reymark Aguila",
+                        contactNumber = "09515853134 / 09668862186",
+                        contactEmail = "aguila.reymark@gmail.com",
+                        address = "Purok 6, Sitio Baybayin, Brgy. San Francisco, Lipa City, Batangas 4217",
                         currency = "PHP",
-                        quotationValidityDays = 7
+                        quotationValidityDays = 15
                     )
                 )
             }
