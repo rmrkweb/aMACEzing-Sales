@@ -17,8 +17,11 @@ android {
     applicationId = "com.amacezing.sales"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    // Injected by CI (-PversionCode / -PversionName); local builds fall back to defaults.
+    versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+    versionName = (project.findProperty("versionName") as String?) ?: "1.0"
+    // "owner/repo" of the public GitHub repo holding Releases; empty disables in-app updates.
+    buildConfigField("String", "GITHUB_REPO", "\"${project.findProperty("githubRepo") ?: ""}\"")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
