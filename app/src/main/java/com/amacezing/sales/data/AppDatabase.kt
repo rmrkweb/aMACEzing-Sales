@@ -25,9 +25,11 @@ import kotlinx.coroutines.launch
         TransactionLineItem::class,
         PaymentRecord::class,
         AppSettings::class,
-        com.amacezing.sales.model.BusinessProfile::class
+        com.amacezing.sales.model.BusinessProfile::class,
+        com.amacezing.sales.model.Quotation::class,
+        com.amacezing.sales.model.QuotationLineItem::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -38,6 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun settingsDao(): SettingsDao
     abstract fun businessProfileDao(): BusinessProfileDao
+    abstract fun quotationDao(): QuotationDao
 
     companion object {
         @Volatile

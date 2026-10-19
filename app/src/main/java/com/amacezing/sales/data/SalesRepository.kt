@@ -24,9 +24,13 @@ class SalesRepository(private val database: AppDatabase) {
     private val customerDao = database.customerDao()
     private val settingsDao = database.settingsDao()
     private val businessProfileDao = database.businessProfileDao()
+    private val quotationDao = database.quotationDao()
 
     val allTransactions: Flow<List<TransactionWithDetails>> =
         transactionDao.getAllTransactionsWithDetails()
+
+    val allQuotations: Flow<List<com.amacezing.sales.model.QuotationWithItems>> =
+        quotationDao.getAllQuotations()
 
     val allProducts: Flow<List<Product>> = productDao.getAllProducts()
 
@@ -237,6 +241,44 @@ class SalesRepository(private val database: AppDatabase) {
         withContext(Dispatchers.IO) {
             customerDao.deleteCustomer(customer)
         }
+    }
+
+    suspend fun generateQuotationNumber(customDateMillis: Long? = null): String {
+        return withContext(Dispatchers.IO) {
+            val dateMillis = customDateMillis ?: System.currentTimeMillis()
+            val year = Instant.ofEpochMilli(dateMillis)
+                .atZone(Formatters.MANILA_ZONE_ID)
+                .year
+            val count = quotationDao.countQuotations()
+            var sequence = count + 1
+            String.format("QT-%d-%04d", year, sequence)
+        }
+    }
+
+    suspend fun saveQuotation(
+        quotation: com.amacezing.sales.model.Quotation,
+        lineItems: List<com.amacezing.sales.model.QuotationLineItem>
+    ): Long = withContext(Dispatchers.IO) {
+        val quotationId = quotationDao.insertQuotation(quotation)
+        val itemsWithId = lineItems.map { it.copy(quotationId = quotationId) }
+        quotationDao.insertLineItems(itemsWithId)
+        quotationId
+    }
+
+    suspend fun deleteQuotation(id: Long) = withContext(Dispatchers.IO) {
+        quotationDao.deleteQuotationById(id)
+    }
+
+    suspend fun updateQuotationStatus(id: Long, status: com.amacezing.sales.model.QuotationStatus) = withContext(Dispatchers.IO) {
+        quotationDao.updateStatus(id, status)
+    }
+
+    suspend fun markQuotationConverted(id: Long, transactionId: String) = withContext(Dispatchers.IO) {
+        quotationDao.markConverted(id, transactionId)
+    }
+
+    suspend fun getQuotationSnapshot(id: Long): com.amacezing.sales.model.QuotationWithItems? = withContext(Dispatchers.IO) {
+        quotationDao.getQuotationSnapshot(id)
     }
 
 

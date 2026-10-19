@@ -35,4 +35,14 @@ class Converters {
     } catch (_: Exception) {
         DiscountType.PERCENTAGE
     }
+
+    @TypeConverter
+    fun fromQuotationStatus(value: com.amacezing.sales.model.QuotationStatus): String = value.name
+
+    @TypeConverter
+    fun toQuotationStatus(value: String): com.amacezing.sales.model.QuotationStatus = try {
+        com.amacezing.sales.model.QuotationStatus.valueOf(value)
+    } catch (_: Exception) {
+        com.amacezing.sales.model.QuotationStatus.DRAFT
+    }
 }

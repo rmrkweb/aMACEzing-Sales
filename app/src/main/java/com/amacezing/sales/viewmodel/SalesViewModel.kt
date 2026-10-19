@@ -152,6 +152,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     val allCustomers: StateFlow<List<Customer>> = repository.allCustomers
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allQuotations: StateFlow<List<com.amacezing.sales.model.QuotationWithItems>> = repository.allQuotations
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val settings: StateFlow<AppSettings> = repository.settingsFlow
         .combine(MutableStateFlow(AppSettings())) { set, default -> set ?: default }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
@@ -983,4 +986,120 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             navigateTo(Screen.TRANSACTIONS)
         }
     }
+
+    // --- Quotations Management ---
+    val showNewQuotationDialog = MutableStateFlow(false)
+    val activePdfDialog = MutableStateFlow<GeneratedPdfState?>(null)
+
+    fun createQuotation(
+        businessType: BusinessType,
+        customerName: String,
+        customerPhone: String = "",
+        customerEmail: String = "",
+        customerAddress: String = "",
+        quotationDateMillis: Long = System.currentTimeMillis(),
+        validityDays: Int = 7,
+        lineItems: List<com.amacezing.sales.model.QuotationLineItem>,
+        discountType: DiscountType = DiscountType.PERCENTAGE,
+        discountValue: Double = 0.0,
+        remarks: String = "",
+        onComplete: (Long) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val quotationNumber = repository.generateQuotationNumber(quotationDateMillis)
+            val grossTotal = lineItems.sumOf { it.lineSubtotal }
+            val discountAmount = when (discountType) {
+                DiscountType.PERCENTAGE -> (grossTotal * discountValue / 100.0).coerceAtLeast(0.0)
+                DiscountType.FIXED -> discountValue.coerceAtMost(grossTotal).coerceAtLeast(0.0)
+            }
+            val netTotal = (grossTotal - discountAmount).coerceAtLeast(0.0)
+            val validUntil = quotationDateMillis + (validityDays.toLong() * 24 * 60 * 60 * 1000)
+
+            val quotation = com.amacezing.sales.model.Quotation(
+                quotationNumber = quotationNumber,
+                businessType = businessType,
+                customerName = customerName.trim(),
+                customerPhone = customerPhone.trim(),
+                customerEmail = customerEmail.trim(),
+                customerAddress = customerAddress.trim(),
+                quotationDateEpochMillis = quotationDateMillis,
+                validityDays = validityDays,
+                validUntilEpochMillis = validUntil,
+                discountType = discountType,
+                discountValue = discountValue,
+                grossTotal = grossTotal,
+                discountAmount = discountAmount,
+                netTotal = netTotal,
+                status = com.amacezing.sales.model.QuotationStatus.DRAFT,
+                remarks = remarks.trim()
+            )
+
+            val id = repository.saveQuotation(quotation, lineItems)
+            snackbarMessage.value = "Quotation $quotationNumber created successfully!"
+            showNewQuotationDialog.value = false
+            onComplete(id)
+        }
+    }
+
+    fun deleteQuotation(id: Long) {
+        viewModelScope.launch {
+            repository.deleteQuotation(id)
+            snackbarMessage.value = "Quotation deleted"
+        }
+    }
+
+    fun updateQuotationStatus(id: Long, status: com.amacezing.sales.model.QuotationStatus) {
+        viewModelScope.launch {
+            repository.updateQuotationStatus(id, status)
+            snackbarMessage.value = "Quotation status updated to ${status.displayName}"
+        }
+    }
+
+    fun convertQuotationToOrder(
+        quotationWithItems: com.amacezing.sales.model.QuotationWithItems,
+        initialPayment: Double = 0.0,
+        paymentMethod: String = "Cash",
+        onComplete: (String) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val q = quotationWithItems.quotation
+            val items = quotationWithItems.lineItems
+
+            val convertedLineItems = items.map { item ->
+                LineItemInput(
+                    productId = item.productId ?: 0L,
+                    quantity = item.quantity,
+                    unitPrice = item.unitPrice,
+                    unitCost = 0.0
+                )
+            }
+            val productInfos = items.map { item ->
+                (item.productId ?: 0L) to item.productName
+            }
+
+            createTransaction(
+                businessType = q.businessType,
+                customerName = q.customerName,
+                orderDateMillis = System.currentTimeMillis(),
+                lineItems = convertedLineItems,
+                productInfos = productInfos,
+                discountType = q.discountType,
+                discountValue = q.discountValue,
+                initialPayment = initialPayment,
+                paymentMethod = paymentMethod,
+                paymentNotes = "Converted from quotation ${q.quotationNumber}",
+                remarks = "Converted from quotation ${q.quotationNumber}. ${q.remarks}".trim()
+            )
+
+            repository.markQuotationConverted(q.id, q.quotationNumber)
+            snackbarMessage.value = "Quotation ${q.quotationNumber} successfully converted to official Order!"
+            onComplete(q.quotationNumber)
+        }
+    }
 }
+
+data class GeneratedPdfState(
+    val file: java.io.File,
+    val title: String,
+    val documentNumber: String
+)
