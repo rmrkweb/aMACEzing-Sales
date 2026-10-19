@@ -47,10 +47,12 @@ import com.amacezing.sales.ui.theme.StatusCancelled
 import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 
 @Composable
 fun TransactionDetailDialog(
     transactionWithDetails: TransactionWithDetails,
+    isProfitMasked: Boolean = false,
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
@@ -202,8 +204,8 @@ fun TransactionDetailDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     val margin = if (tx.netSales > 0.0) (tx.estimatedProfit / tx.netSales) * 100.0 else 0.0
-                                    Text("Estimated Profit (${Formatters.formatPercent(margin)}):", fontSize = 12.sp)
-                                    Text(Formatters.formatCurrency(tx.estimatedProfit), fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = SecondaryAmber)
+                                    Text("Estimated Profit (${if (isProfitMasked) "••••" else Formatters.formatPercent(margin)}):", fontSize = 12.sp)
+                                    Text(tx.estimatedProfit.formatCurrency(isProfitMasked), fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = SecondaryAmber)
                                 }
 
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

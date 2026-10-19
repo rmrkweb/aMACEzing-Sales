@@ -45,6 +45,7 @@ import com.amacezing.sales.ui.theme.SintraBoardBlue
 import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.viewmodel.ChartBarData
 import com.amacezing.sales.viewmodel.DashboardMetrics
 import com.amacezing.sales.viewmodel.ProductSaleStat
@@ -52,7 +53,8 @@ import com.amacezing.sales.viewmodel.ProductSaleStat
 @Composable
 fun SalesAndProfitTrendChart(
     data: List<ChartBarData>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isProfitMasked: Boolean = false
 ) {
     Card(
         modifier = modifier
@@ -309,12 +311,12 @@ fun BusinessComparisonCard(
                         fontSize = 13.sp
                     )
                     Text(
-                        "Profit: ${Formatters.formatCurrency(engravingMetrics.estimatedProfit)}",
+                        "Profit: ${engravingMetrics.estimatedProfit.formatCurrency(isProfitMasked)}",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Margin: ${Formatters.formatPercent(engravingMetrics.profitMarginPercent)}",
+                        "Margin: ${if (isProfitMasked) "••••" else Formatters.formatPercent(engravingMetrics.profitMarginPercent)}",
                         fontSize = 11.sp,
                         color = SecondaryAmber
                     )
@@ -348,12 +350,12 @@ fun BusinessComparisonCard(
                         fontSize = 13.sp
                     )
                     Text(
-                        "Profit: ${Formatters.formatCurrency(sintraMetrics.estimatedProfit)}",
+                        "Profit: ${sintraMetrics.estimatedProfit.formatCurrency(isProfitMasked)}",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Margin: ${Formatters.formatPercent(sintraMetrics.profitMarginPercent)}",
+                        "Margin: ${if (isProfitMasked) "••••" else Formatters.formatPercent(sintraMetrics.profitMarginPercent)}",
                         fontSize = 11.sp,
                         color = SecondaryAmber
                     )

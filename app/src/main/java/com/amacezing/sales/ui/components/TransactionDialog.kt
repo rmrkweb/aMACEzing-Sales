@@ -67,6 +67,7 @@ import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.util.LineItemInput
 import com.amacezing.sales.util.SalesCalculator
 
@@ -88,6 +89,7 @@ fun TransactionDialog(
     defaultBusinessType: BusinessType = BusinessType.ENGRAVING,
     sintraMarginPercent: Double = 58.3333,
     sintraUseCostCalculation: Boolean = false,
+    isProfitMasked: Boolean = false,
     onSaveNew: (
         businessType: BusinessType,
         customerName: String,
@@ -639,8 +641,8 @@ fun TransactionDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text("Estimated Profit (${Formatters.formatPercent(calculationResult.estimatedMarginPercent)}):", fontSize = 12.sp)
-                                    Text(Formatters.formatCurrency(calculationResult.estimatedProfit), fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = SecondaryAmber)
+                                    Text("Estimated Profit (${if (isProfitMasked) "••••" else Formatters.formatPercent(calculationResult.estimatedMarginPercent)}):", fontSize = 12.sp)
+                                    Text(calculationResult.estimatedProfit.formatCurrency(isProfitMasked), fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = SecondaryAmber)
                                 }
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
