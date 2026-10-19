@@ -289,14 +289,7 @@ Box(
     modifier = Modifier
         .size(118.dp)
         .clip(CircleShape)
-        .background(
-            Brush.radialGradient(
-                colors = listOf(
-                    
-                    Color.Transparent
-                )
-            )
-        ),
+        .background(Color.Transparent),
     contentAlignment = Alignment.Center
 ) {
     Image(
