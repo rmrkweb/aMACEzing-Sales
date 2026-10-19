@@ -130,6 +130,7 @@ fun AppRoot(viewModel: SalesViewModel) {
     if (currentUser == null) {
         AuthScreen(onAuthSuccess = { currentUser = Firebase.auth.currentUser })
     } else {
+        com.amacezing.sales.update.AutoUpdatePrompt()
         MainAppScaffold(
             viewModel = viewModel,
             currentUser = currentUser!!,
