@@ -349,6 +349,7 @@ fun MainAppScaffold(
             existingCustomers = allCustomers,
             sintraMarginPercent = settings.sintraDefaultMarginPercent,
             sintraUseCostCalculation = settings.sintraUseCostCalculation,
+            isProfitMasked = settings.isProfitMasked,
             onSaveNew = { biz, cust, date, items, pInfo, dType, dVal, initPaid, pMethod, pNotes, rem ->
                 viewModel.createTransaction(
                     businessType = biz,
@@ -377,6 +378,7 @@ fun MainAppScaffold(
             existingCustomers = allCustomers,
             sintraMarginPercent = settings.sintraDefaultMarginPercent,
             sintraUseCostCalculation = settings.sintraUseCostCalculation,
+            isProfitMasked = settings.isProfitMasked,
             onSaveNew = { _, _, _, _, _, _, _, _, _, _, _ -> },
             onSaveEdit = { original, items, pInfo, dType, dVal, rem, stOverride ->
                 viewModel.updateTransaction(
@@ -396,6 +398,7 @@ fun MainAppScaffold(
     viewingTx?.let { txToView ->
         TransactionDetailDialog(
             transactionWithDetails = txToView,
+            isProfitMasked = settings.isProfitMasked,
             onDismiss = { viewModel.viewingTransaction.value = null },
             onEdit = {
                 viewModel.viewingTransaction.value = null
