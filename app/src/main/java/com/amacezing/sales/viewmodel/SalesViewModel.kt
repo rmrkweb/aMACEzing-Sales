@@ -760,7 +760,8 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                         sintraOrderPrefix = newSettings.sintraOrderPrefix,
                         sintraDefaultMarginPercent = newSettings.sintraDefaultMarginPercent,
                         sintraUseCostCalculation = newSettings.sintraUseCostCalculation,
-                        currencySymbol = newSettings.currencySymbol
+                        currencySymbol = newSettings.currencySymbol,
+                        isProfitMasked = newSettings.isProfitMasked
                     )
                 )
                 _syncStatus.value = SyncStatus.SYNCED
