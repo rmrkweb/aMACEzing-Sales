@@ -280,6 +280,10 @@ fun SettingsScreen(
                 }
             }
 
+            item {
+                com.amacezing.sales.update.UpdateSettingsCard()
+            }
+
             // Sintra Board Margin Configuration
             item {
                 Card(
