@@ -65,6 +65,7 @@ import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.CsvHelper
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.viewmodel.SalesViewModel
 
 @Composable
@@ -77,6 +78,7 @@ fun TransactionsScreen(
     val selectedBusiness by viewModel.selectedBusiness.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val statusFilter by viewModel.statusFilter.collectAsState()
+    val settings by viewModel.settings.collectAsState()
 
     var sortByDateDesc by remember { mutableStateOf(true) }
 
@@ -317,7 +319,7 @@ fun TransactionsScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "Profit: ${Formatters.formatCurrency(tx.estimatedProfit)}",
+                                        text = "Profit: ${tx.estimatedProfit.formatCurrency(settings.isProfitMasked)}",
                                         fontSize = 12.sp,
                                         color = SecondaryAmber
                                     )

@@ -68,6 +68,7 @@ import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.viewmodel.DateRangeType
 import com.amacezing.sales.viewmodel.SalesViewModel
 
@@ -191,7 +192,7 @@ fun DashboardScreen(
                         value = metrics.estimatedProfit.formatCurrency(settings.isProfitMasked),
                         icon = Icons.Default.ShowChart,
                         iconColor = SecondaryAmber,
-                        subtitle = "Margin: ${Formatters.formatPercent(metrics.profitMarginPercent)}",
+                        subtitle = "Margin: ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(metrics.profitMarginPercent)}",
                         subtitleColor = SecondaryAmber,
                         modifier = Modifier.weight(1f)
                     )
@@ -255,7 +256,7 @@ fun DashboardScreen(
 
             // Visual Charts
             item {
-                SalesAndProfitTrendChart(data = trendData)
+                SalesAndProfitTrendChart(data = trendData, isProfitMasked = settings.isProfitMasked)
             }
 
             item {
@@ -442,7 +443,7 @@ fun DashboardScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    "Profit: ${Formatters.formatCurrency(tx.estimatedProfit)}",
+                                    "Profit: ${tx.estimatedProfit.formatCurrency(settings.isProfitMasked)}",
                                     fontSize = 11.sp,
                                     color = SecondaryAmber
                                 )

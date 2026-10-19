@@ -52,6 +52,7 @@ import com.amacezing.sales.ui.theme.SintraBoardBlue
 import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.viewmodel.DateRangeType
 import com.amacezing.sales.viewmodel.SalesViewModel
 
@@ -67,6 +68,7 @@ fun ReportsScreen(
     val filteredTransactions by viewModel.filteredTransactions.collectAsState()
     val productStats by viewModel.productSalesStats.collectAsState()
     val businessComparison by viewModel.businessComparison.collectAsState()
+    val settings by viewModel.settings.collectAsState()
 
     // Customer sales summary in this period
     val customerSalesSummary = remember(filteredTransactions) {
@@ -211,8 +213,8 @@ fun ReportsScreen(
                         SummaryRow("Discounts Applied", "-${Formatters.formatCurrency(metrics.totalDiscounts)}", SecondaryAmber)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         SummaryRow("Net Sales", Formatters.formatCurrency(metrics.netSales), MaterialTheme.colorScheme.primary, isBold = true)
-                        SummaryRow("Estimated Profit", Formatters.formatCurrency(metrics.estimatedProfit), SecondaryAmber, isBold = true)
-                        SummaryRow("Overall Profit Margin", Formatters.formatPercent(metrics.profitMarginPercent), SecondaryAmber)
+                        SummaryRow("Estimated Profit", metrics.estimatedProfit.formatCurrency(settings.isProfitMasked), SecondaryAmber, isBold = true)
+                        SummaryRow("Overall Profit Margin", if (settings.isProfitMasked) "••••" else Formatters.formatPercent(metrics.profitMarginPercent), SecondaryAmber)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                         SummaryRow("Total Collected Cash", Formatters.formatCurrency(metrics.totalCollected), StatusPaid)
                         SummaryRow("Outstanding Receivables", Formatters.formatCurrency(metrics.outstandingReceivables), StatusPending, isBold = true)
@@ -245,8 +247,8 @@ fun ReportsScreen(
                         HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
 
                         ReportComparisonRow("Net Sales", Formatters.formatCurrency(businessComparison.first.netSales), Formatters.formatCurrency(businessComparison.second.netSales))
-                        ReportComparisonRow("Profit", Formatters.formatCurrency(businessComparison.first.estimatedProfit), Formatters.formatCurrency(businessComparison.second.estimatedProfit))
-                        ReportComparisonRow("Margin %", Formatters.formatPercent(businessComparison.first.profitMarginPercent), Formatters.formatPercent(businessComparison.second.profitMarginPercent))
+                        ReportComparisonRow("Profit", businessComparison.first.estimatedProfit.formatCurrency(settings.isProfitMasked), businessComparison.second.estimatedProfit.formatCurrency(settings.isProfitMasked))
+                        ReportComparisonRow("Margin %", if (settings.isProfitMasked) "••••" else Formatters.formatPercent(businessComparison.first.profitMarginPercent), if (settings.isProfitMasked) "••••" else Formatters.formatPercent(businessComparison.second.profitMarginPercent))
                         ReportComparisonRow("Orders", "${businessComparison.first.ordersCount}", "${businessComparison.second.ordersCount}")
                         ReportComparisonRow("Items Sold", "${businessComparison.first.totalProductsSold}", "${businessComparison.second.totalProductsSold}")
                         ReportComparisonRow("Receivables", Formatters.formatCurrency(businessComparison.first.outstandingReceivables), Formatters.formatCurrency(businessComparison.second.outstandingReceivables))

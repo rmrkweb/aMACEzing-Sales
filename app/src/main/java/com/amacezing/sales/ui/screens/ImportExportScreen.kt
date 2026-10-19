@@ -59,6 +59,7 @@ import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.CsvHelper
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.util.SampleMigrationData
 import com.amacezing.sales.viewmodel.SalesViewModel
 
@@ -67,6 +68,8 @@ fun ImportExportScreen(
     viewModel: SalesViewModel,
     modifier: Modifier = Modifier
 ) {
+    val settings by viewModel.settings.collectAsState()
+
     val context = LocalContext.current
     val importText by viewModel.importText.collectAsState()
     val importBusinessType by viewModel.importBusinessType.collectAsState()
@@ -401,7 +404,7 @@ fun ImportExportScreen(
 
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(Formatters.formatCurrency(row.calculatedNet), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Profit: ${Formatters.formatCurrency(row.calculatedProfit)}", fontSize = 11.sp, color = SecondaryAmber)
+                                Text("Profit: ${row.calculatedProfit.formatCurrency(settings.isProfitMasked)}", fontSize = 11.sp, color = SecondaryAmber)
                             }
                         }
                     }
