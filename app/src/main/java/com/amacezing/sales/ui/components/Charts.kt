@@ -208,7 +208,8 @@ fun SalesAndProfitTrendChart(
 fun BusinessComparisonCard(
     engravingMetrics: DashboardMetrics,
     sintraMetrics: DashboardMetrics,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isProfitMasked: Boolean = false
 ) {
     Card(
         modifier = modifier
