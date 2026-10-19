@@ -239,7 +239,7 @@ jobs:
           echo "=== Keystore certificate fingerprints ==="
           keytool -list -v \
             -keystore "$KEYSTORE_PATH" \
-            -alias upload \
+            -alias amacezing \
             -storepass "$STORE_PASSWORD" \
             -keypass "$KEY_PASSWORD" |
             grep -E 'SHA1:|SHA256:'
