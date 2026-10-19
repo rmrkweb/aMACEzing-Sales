@@ -14,6 +14,7 @@ data class AppSettings(
     val sintraDefaultMarginPercent: Double = 58.3333, // Default 58.3333% from existing Excel workbook
     val sintraUseCostCalculation: Boolean = false,    // Toggle between margin and actual unit costs
     val currencySymbol: String = "₱",
+    val isProfitMasked: Boolean = false,
     val defaultDiscountPercentage: Double = 0.0,
     val nextEngravingSequence: Int = 1,
     val nextSintraSequence: Int = 1
