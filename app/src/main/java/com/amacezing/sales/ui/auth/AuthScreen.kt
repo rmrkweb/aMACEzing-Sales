@@ -292,7 +292,7 @@ Box(
         .background(
             Brush.radialGradient(
                 colors = listOf(
-                    TechAccentDeepBlue.copy(alpha = 0.35f),
+                    
                     Color.Transparent
                 )
             )
