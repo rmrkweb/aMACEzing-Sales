@@ -2,11 +2,13 @@ package com.amacezing.sales.data.firebase
 
 import android.content.Context
 import com.amacezing.sales.R
+import com.amacezing.sales.data.repository.BusinessProfileRepository
 import com.amacezing.sales.data.repository.BusinessRepository
 import com.amacezing.sales.data.repository.CustomerRepository
 import com.amacezing.sales.data.repository.ProductRepository
 import com.amacezing.sales.data.repository.SettingsRepository
 import com.amacezing.sales.data.repository.TransactionRepository
+import com.amacezing.sales.data.repository.firestore.FirestoreBusinessProfileRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreBusinessRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreCustomerRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreProductRepository
@@ -29,7 +31,8 @@ class FirestoreSalesRepository(
     ProductRepository,
     CustomerRepository,
     TransactionRepository,
-    SettingsRepository {
+    SettingsRepository,
+    BusinessProfileRepository {
 
     // Sub-repositories for clean modular access
     val businessRepo: BusinessRepository = FirestoreBusinessRepository(db, auth)
@@ -37,6 +40,7 @@ class FirestoreSalesRepository(
     val customerRepo: CustomerRepository = FirestoreCustomerRepository(db, auth)
     val transactionRepo: TransactionRepository = FirestoreTransactionRepository(db, auth)
     val settingsRepo: SettingsRepository = FirestoreSettingsRepository(db, auth)
+    val businessProfileRepo: BusinessProfileRepository = FirestoreBusinessProfileRepository(db, auth)
 
     companion object {
         private fun getFirestoreInstance(context: Context): FirebaseFirestore {
@@ -119,4 +123,9 @@ class FirestoreSalesRepository(
     override fun observeSettings(): Flow<FirestoreSettings?> = settingsRepo.observeSettings()
     override suspend fun getSettings(): FirestoreSettings? = settingsRepo.getSettings()
     override suspend fun saveSettings(settings: FirestoreSettings) = settingsRepo.saveSettings(settings)
+
+    // --- Business Profile Delegation ---
+    override fun observeBusinessProfile(): Flow<FirestoreBusinessProfile?> = businessProfileRepo.observeBusinessProfile()
+    override suspend fun getBusinessProfile(): FirestoreBusinessProfile? = businessProfileRepo.getBusinessProfile()
+    override suspend fun saveBusinessProfile(profile: FirestoreBusinessProfile) = businessProfileRepo.saveBusinessProfile(profile)
 }

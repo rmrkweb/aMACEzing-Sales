@@ -24,7 +24,8 @@ import kotlinx.coroutines.launch
         SalesTransaction::class,
         TransactionLineItem::class,
         PaymentRecord::class,
-        AppSettings::class
+        AppSettings::class,
+        com.amacezing.sales.model.BusinessProfile::class
     ],
     version = 1,
     exportSchema = false
@@ -36,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun customerDao(): CustomerDao
     abstract fun transactionDao(): TransactionDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun businessProfileDao(): BusinessProfileDao
 
     companion object {
         @Volatile
@@ -80,6 +82,24 @@ abstract class AppDatabase : RoomDatabase() {
                         sintraDefaultMarginPercent = 58.3333,
                         sintraUseCostCalculation = false,
                         currencySymbol = "₱"
+                    )
+                )
+            }
+
+            // Seed Business Profile
+            val profileDao = database.businessProfileDao()
+            if (profileDao.getProfileSnapshot() == null) {
+                profileDao.insertOrUpdate(
+                    com.amacezing.sales.model.BusinessProfile(
+                        id = "active_profile",
+                        businessName = "aMACEzing Printing Services",
+                        tagline = "Precision Laser Engraving & Sintra Board Printing Solutions",
+                        ownerName = "",
+                        contactNumber = "",
+                        contactEmail = "",
+                        address = "Bulacan, Philippines",
+                        currency = "PHP",
+                        quotationValidityDays = 7
                     )
                 )
             }

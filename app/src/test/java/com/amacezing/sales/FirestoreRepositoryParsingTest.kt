@@ -5,8 +5,10 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.amacezing.sales.data.AppDatabase
 import com.amacezing.sales.data.SalesRepository
+import com.amacezing.sales.data.firebase.FirestoreBusinessProfile
 import com.amacezing.sales.data.firebase.FirestoreCustomer
 import com.amacezing.sales.data.firebase.FirestoreMappers.toFirestore
+import com.amacezing.sales.data.firebase.FirestoreMappers.toRoomBusinessProfile
 import com.amacezing.sales.data.firebase.FirestoreMappers.toRoomCustomer
 import com.amacezing.sales.data.firebase.FirestoreMappers.toRoomProduct
 import com.amacezing.sales.data.firebase.FirestoreMappers.toRoomSettings
@@ -15,6 +17,7 @@ import com.amacezing.sales.data.firebase.FirestoreProduct
 import com.amacezing.sales.data.firebase.FirestoreSettings
 import com.amacezing.sales.data.firebase.FirestoreTransaction
 import com.amacezing.sales.model.AppSettings
+import com.amacezing.sales.model.BusinessProfile
 import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.DiscountType
@@ -397,6 +400,119 @@ class FirestoreRepositoryParsingTest {
         assertEquals("SNT", parsed.sintraOrderPrefix)
         assertEquals(100.0, parsed.sintraDefaultMarginPercent, 0.001)
         assertEquals("₱", parsed.currencySymbol)
+    }
+
+    // =========================================================================
+    // BUSINESS PROFILE PARSING & ROOM INTEGRITY TESTS
+    // =========================================================================
+
+    @Test
+    fun testBusinessProfile_validRoundtripConversion() {
+        val originalProfile = BusinessProfile(
+            id = "active_profile",
+            userId = testUserId,
+            businessName = "aMACEzing Prints & Engraving",
+            tagline = "Quality Laser Engraving & Sintra Signs",
+            ownerName = "Reymark Aguila",
+            contactNumber = "0917-123-4567",
+            contactEmail = "reymark@amacezing.com",
+            address = "Bulacan, Philippines",
+            facebookPage = "facebook.com/aMACEzing",
+            website = "https://amacezing.com",
+            tin = "123-456-789-000",
+            documentFooter = "Thank you for your business!",
+            logoUri = "/data/user/0/com.amacezing.sales/files/branding/logo.png",
+            currency = "PHP",
+            quotationValidityDays = 14,
+            paymentInstructions = "GCash: 0917-123-4567",
+            quotationTerms = "50% downpayment required.",
+            receiptFooter = "Official receipt acknowledgment.",
+            showLogoOnDocuments = true,
+            showContactOnDocuments = true
+        )
+
+        val firestoreModel = originalProfile.toFirestore(testUserId)
+        assertEquals("active_profile", firestoreModel.id)
+        assertEquals(testUserId, firestoreModel.userId)
+        assertEquals("aMACEzing Prints & Engraving", firestoreModel.businessName)
+        assertEquals("Reymark Aguila", firestoreModel.ownerName)
+        assertEquals(14, firestoreModel.quotationValidityDays)
+        assertTrue(firestoreModel.showLogoOnDocuments)
+
+        val parsedBack = firestoreModel.toRoomBusinessProfile()
+        assertEquals(originalProfile.businessName, parsedBack.businessName)
+        assertEquals(originalProfile.tagline, parsedBack.tagline)
+        assertEquals(originalProfile.ownerName, parsedBack.ownerName)
+        assertEquals(originalProfile.contactNumber, parsedBack.contactNumber)
+        assertEquals(originalProfile.contactEmail, parsedBack.contactEmail)
+        assertEquals(originalProfile.address, parsedBack.address)
+        assertEquals(originalProfile.logoUri, parsedBack.logoUri)
+        assertEquals(14, parsedBack.quotationValidityDays)
+        assertEquals(originalProfile.currency, parsedBack.currency)
+    }
+
+    @Test
+    fun testBusinessProfile_emptyNameAndInvalidValidity_defaultsResiliently() {
+        val corrupted = FirestoreBusinessProfile(
+            id = "",
+            userId = testUserId,
+            businessName = "   ",
+            quotationValidityDays = -5,
+            currency = ""
+        )
+
+        val parsed = corrupted.toRoomBusinessProfile()
+        assertEquals("aMACEzing Printing Services", parsed.businessName)
+        assertEquals(7, parsed.quotationValidityDays)
+        assertEquals("PHP", parsed.currency)
+    }
+
+    @Test
+    fun testBusinessProfile_snapshotGenerationPreservesValues() {
+        val profile = BusinessProfile(
+            businessName = "aMACEzing Enterprise",
+            tagline = "Signage Solutions",
+            ownerName = "Reymark Aguila",
+            contactNumber = "09123456789",
+            contactEmail = "reymark@example.com",
+            address = "Bulacan, PH",
+            tin = "999-888-777",
+            logoUri = "content://media/logo.png",
+            currency = "PHP",
+            documentFooter = "Valid Document Footer",
+            receiptFooter = "Valid Receipt Footer",
+            paymentInstructions = "Bank BDO",
+            quotationTerms = "Standard Terms",
+            showLogoOnDocuments = true,
+            showContactOnDocuments = true
+        )
+
+        val snapshot = profile.toSnapshot()
+        assertEquals("aMACEzing Enterprise", snapshot.businessName)
+        assertEquals("Reymark Aguila", snapshot.ownerName)
+        assertEquals("09123456789", snapshot.contactNumber)
+        assertEquals("content://media/logo.png", snapshot.logoUri)
+        assertTrue(snapshot.snapshotTimestamp > 0L)
+    }
+
+    @Test
+    fun testBusinessProfile_roomPersistenceAndFlow() = runBlocking {
+        val profile = BusinessProfile(
+            id = "active_profile",
+            userId = testUserId,
+            businessName = "Custom Studio Branding",
+            ownerName = "Operator 1",
+            quotationValidityDays = 10
+        )
+
+        repository.updateBusinessProfile(profile)
+        val snapshot = repository.getBusinessProfileSnapshot()
+        assertEquals("Custom Studio Branding", snapshot.businessName)
+        assertEquals(10, snapshot.quotationValidityDays)
+
+        val flowValue = repository.businessProfileFlow.first()
+        assertNotNull(flowValue)
+        assertEquals("Custom Studio Branding", flowValue?.businessName)
     }
 
     // =========================================================================

@@ -38,9 +38,12 @@ val TechBgNearBlack = Color(0xFF020817)
 val TechSurfaceDeepNavy = Color(0xFF071321)
 val TechSurfaceSecondary = Color(0xFF06101F)
 val TechAccentCyan = Color(0xFF00B8F0)
+val TechAccentViolet = Color(0xFFA78BFA)
 val TechAccentDeepBlue = Color(0xFF0878D1)
 val TechTextPrimary = Color(0xFFF5F8FC)
 val TechTextSecondary = Color(0xFFB8C7D9)
+val TechTextSilver = Color(0xFFCBD5E1)
 val TechBorderSubtle = Color(0xFF123B60)
 val TechBadgeBg = Color(0xFF09223D)
+
 

@@ -79,6 +79,13 @@ service cloud.firestore {
              data.sintraUseCostCalculation is bool;
     }
 
+    // Business Profile
+    function isValidBusinessProfile(data, userId) {
+      return data.id is string &&
+             data.userId == userId &&
+             data.businessName is string && data.businessName.size() > 0;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUserProfile(incoming());
@@ -117,6 +124,13 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidSettings(incoming(), userId);
         allow update: if isOwner(userId) && isValidSettings(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /business_profile/{profileId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidBusinessProfile(incoming(), userId);
+        allow update: if isOwner(userId) && isValidBusinessProfile(incoming(), userId) && incoming().userId == existing().userId;
         allow delete: if isOwner(userId);
       }
     }

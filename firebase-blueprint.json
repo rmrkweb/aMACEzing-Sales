@@ -104,6 +104,35 @@
         "updatedAt": { "type": "string", "format": "date-time", "description": "Server update timestamp" }
       },
       "required": ["id", "userId", "businessNameEngraving", "businessNameSintra", "engravingOrderPrefix", "sintraOrderPrefix", "sintraDefaultMarginPercent", "sintraUseCostCalculation"]
+    },
+    "BusinessProfile": {
+      "title": "BusinessProfile",
+      "description": "Central business branding profile, contact information, and document preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Profile identifier (active_profile)" },
+        "userId": { "type": "string", "description": "Owner user ID" },
+        "businessName": { "type": "string", "description": "Business display name" },
+        "tagline": { "type": "string", "description": "Tagline or short business description" },
+        "ownerName": { "type": "string", "description": "Owner or authorized representative name" },
+        "contactNumber": { "type": "string", "description": "Business contact telephone or mobile" },
+        "contactEmail": { "type": "string", "description": "Business contact email" },
+        "address": { "type": "string", "description": "Physical business address" },
+        "facebookPage": { "type": "string", "description": "Facebook page URL or handle" },
+        "website": { "type": "string", "description": "Business website URL" },
+        "tin": { "type": "string", "description": "Taxpayer Identification Number" },
+        "documentFooter": { "type": "string", "description": "Default footer text for generated quotations/invoices" },
+        "logoUri": { "type": "string", "description": "Local URI or cloud URL reference for business document logo" },
+        "currency": { "type": "string", "description": "Default currency code (e.g. PHP)" },
+        "quotationValidityDays": { "type": "number", "description": "Default quotation validity duration in days" },
+        "paymentInstructions": { "type": "string", "description": "Default payment account and instructions" },
+        "quotationTerms": { "type": "string", "description": "Default quotation terms and conditions" },
+        "receiptFooter": { "type": "string", "description": "Default footer text on sales receipts" },
+        "showLogoOnDocuments": { "type": "boolean", "description": "Whether to print logo on documents" },
+        "showContactOnDocuments": { "type": "boolean", "description": "Whether to print contact details on documents" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server update timestamp" }
+      },
+      "required": ["id", "userId", "businessName"]
     }
   },
   "firestore": {
@@ -130,6 +159,10 @@
     "/users/{userId}/settings/{settingId}": {
       "schema": { "$ref": "#/entities/Settings" },
       "description": "Application settings and business rules"
+    },
+    "/users/{userId}/business_profile/{profileId}": {
+      "schema": { "$ref": "#/entities/BusinessProfile" },
+      "description": "Central business branding and profile settings"
     }
   }
 }

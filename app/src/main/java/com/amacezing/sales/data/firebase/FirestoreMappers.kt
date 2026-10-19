@@ -1,6 +1,7 @@
 package com.amacezing.sales.data.firebase
 
 import com.amacezing.sales.model.AppSettings
+import com.amacezing.sales.model.BusinessProfile
 import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.DiscountType
@@ -156,6 +157,60 @@ object FirestoreMappers {
             sintraDefaultMarginPercent = safeMargin,
             sintraUseCostCalculation = sintraUseCostCalculation,
             currencySymbol = currencySymbol.trim().ifEmpty { "₱" }
+        )
+    }
+
+    // --- Business Profile Mapping & Parsing ---
+
+    fun BusinessProfile.toFirestore(userId: String): FirestoreBusinessProfile {
+        return FirestoreBusinessProfile(
+            id = id.ifBlank { "active_profile" },
+            userId = userId,
+            businessName = businessName.trim().ifEmpty { "aMACEzing Printing Services" },
+            tagline = tagline.trim(),
+            ownerName = ownerName.trim(),
+            contactNumber = contactNumber.trim(),
+            contactEmail = contactEmail.trim(),
+            address = address.trim(),
+            facebookPage = facebookPage.trim(),
+            website = website.trim(),
+            tin = tin.trim(),
+            documentFooter = documentFooter.trim(),
+            logoUri = logoUri.trim(),
+            currency = currency.trim().ifEmpty { "PHP" },
+            quotationValidityDays = if (quotationValidityDays > 0) quotationValidityDays else 7,
+            paymentInstructions = paymentInstructions.trim(),
+            quotationTerms = quotationTerms.trim(),
+            receiptFooter = receiptFooter.trim(),
+            showLogoOnDocuments = showLogoOnDocuments,
+            showContactOnDocuments = showContactOnDocuments
+        )
+    }
+
+    fun FirestoreBusinessProfile.toRoomBusinessProfile(id: String = "active_profile"): BusinessProfile {
+        val safeValidity = if (quotationValidityDays > 0) quotationValidityDays else 7
+        return BusinessProfile(
+            id = id,
+            userId = userId,
+            businessName = businessName.trim().ifEmpty { "aMACEzing Printing Services" },
+            tagline = tagline.trim(),
+            ownerName = ownerName.trim(),
+            contactNumber = contactNumber.trim(),
+            contactEmail = contactEmail.trim(),
+            address = address.trim(),
+            facebookPage = facebookPage.trim(),
+            website = website.trim(),
+            tin = tin.trim(),
+            documentFooter = documentFooter.trim().ifEmpty { "Thank you for your business! For inquiries, contact us anytime." },
+            logoUri = logoUri.trim(),
+            currency = currency.trim().ifEmpty { "PHP" },
+            quotationValidityDays = safeValidity,
+            paymentInstructions = paymentInstructions.trim(),
+            quotationTerms = quotationTerms.trim(),
+            receiptFooter = receiptFooter.trim().ifEmpty { "Official sales payment acknowledgment." },
+            showLogoOnDocuments = showLogoOnDocuments,
+            showContactOnDocuments = showContactOnDocuments,
+            updatedAtEpochMillis = System.currentTimeMillis()
         )
     }
 

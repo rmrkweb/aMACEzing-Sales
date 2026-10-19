@@ -23,6 +23,7 @@ class SalesRepository(private val database: AppDatabase) {
     private val productDao = database.productDao()
     private val customerDao = database.customerDao()
     private val settingsDao = database.settingsDao()
+    private val businessProfileDao = database.businessProfileDao()
 
     val allTransactions: Flow<List<TransactionWithDetails>> =
         transactionDao.getAllTransactionsWithDetails()
@@ -32,6 +33,21 @@ class SalesRepository(private val database: AppDatabase) {
     val allCustomers: Flow<List<Customer>> = customerDao.getAllCustomers()
 
     val settingsFlow: Flow<AppSettings?> = settingsDao.getSettingsFlow()
+
+    val businessProfileFlow: Flow<com.amacezing.sales.model.BusinessProfile?> =
+        businessProfileDao.getProfileFlow()
+
+    suspend fun getBusinessProfileSnapshot(): com.amacezing.sales.model.BusinessProfile {
+        return withContext(Dispatchers.IO) {
+            businessProfileDao.getProfileSnapshot() ?: com.amacezing.sales.model.BusinessProfile()
+        }
+    }
+
+    suspend fun updateBusinessProfile(profile: com.amacezing.sales.model.BusinessProfile) {
+        withContext(Dispatchers.IO) {
+            businessProfileDao.insertOrUpdate(profile)
+        }
+    }
 
     suspend fun getSettingsSnapshot(): AppSettings {
         return withContext(Dispatchers.IO) {
@@ -234,7 +250,8 @@ class SalesRepository(private val database: AppDatabase) {
         products: List<com.amacezing.sales.data.firebase.FirestoreProduct>,
         customers: List<com.amacezing.sales.data.firebase.FirestoreCustomer>,
         transactions: List<com.amacezing.sales.data.firebase.FirestoreTransaction>,
-        cloudSettings: com.amacezing.sales.data.firebase.FirestoreSettings?
+        cloudSettings: com.amacezing.sales.data.firebase.FirestoreSettings?,
+        cloudProfile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile? = null
     ) = withContext(Dispatchers.IO) {
         val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
         val restoredCustomers = customers.map { mapper.run { it.toRoomCustomer() } }
@@ -252,6 +269,10 @@ class SalesRepository(private val database: AppDatabase) {
 
         if (cloudSettings != null) {
             settingsDao.insertOrUpdate(mapper.run { cloudSettings.toRoomSettings(id = 1) })
+        }
+
+        if (cloudProfile != null) {
+            businessProfileDao.insertOrUpdate(mapper.run { cloudProfile.toRoomBusinessProfile() })
         }
     }
 

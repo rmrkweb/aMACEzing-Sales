@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -80,6 +81,7 @@ import com.amacezing.sales.ui.screens.CustomersScreen
 import com.amacezing.sales.ui.screens.DashboardScreen
 import com.amacezing.sales.ui.screens.ImportExportScreen
 import com.amacezing.sales.ui.screens.ProductsScreen
+import com.amacezing.sales.ui.screens.ProfileScreen
 import com.amacezing.sales.ui.screens.ReportsScreen
 import com.amacezing.sales.ui.screens.SettingsScreen
 import com.amacezing.sales.ui.screens.TransactionsScreen
@@ -246,6 +248,17 @@ fun MainAppScaffold(
                     }
 
                     IconButton(
+                        onClick = { viewModel.navigateTo(Screen.PROFILE) },
+                        modifier = Modifier.testTag("top_nav_profile")
+                    ) {
+                        Icon(
+                            Icons.Default.Storefront,
+                            contentDescription = "Business Profile & Branding",
+                            tint = if (currentScreen == Screen.PROFILE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(
                         onClick = { viewModel.navigateTo(Screen.SETTINGS) },
                         modifier = Modifier.testTag("top_nav_settings")
                     ) {
@@ -322,6 +335,7 @@ fun MainAppScaffold(
                     Screen.REPORTS -> ReportsScreen(viewModel = viewModel)
                     Screen.IMPORT_EXPORT -> ImportExportScreen(viewModel = viewModel)
                     Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
+                    Screen.PROFILE -> ProfileScreen(viewModel = viewModel, currentUser = currentUser)
                 }
             }
         }

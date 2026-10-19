@@ -85,3 +85,29 @@ data class FirestoreSettings(
     val currencySymbol: String = "₱",
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
+
+@IgnoreExtraProperties
+data class FirestoreBusinessProfile(
+    val id: String = "active_profile",
+    val userId: String = "",
+    val businessName: String = "aMACEzing Printing Services",
+    val tagline: String = "",
+    val ownerName: String = "",
+    val contactNumber: String = "",
+    val contactEmail: String = "",
+    val address: String = "",
+    val facebookPage: String = "",
+    val website: String = "",
+    val tin: String = "",
+    val documentFooter: String = "",
+    val logoUri: String = "",
+    val currency: String = "PHP",
+    val quotationValidityDays: Int = 7,
+    val paymentInstructions: String = "",
+    val quotationTerms: String = "",
+    val receiptFooter: String = "",
+    val showLogoOnDocuments: Boolean = true,
+    val showContactOnDocuments: Boolean = true,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+

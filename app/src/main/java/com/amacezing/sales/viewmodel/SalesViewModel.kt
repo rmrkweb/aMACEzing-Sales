@@ -87,6 +87,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     val customerRepo: com.amacezing.sales.data.repository.CustomerRepository = firestoreRepo.customerRepo
     val transactionRepo: com.amacezing.sales.data.repository.TransactionRepository = firestoreRepo.transactionRepo
     val settingsRepo: com.amacezing.sales.data.repository.SettingsRepository = firestoreRepo.settingsRepo
+    val businessProfileRepo: com.amacezing.sales.data.repository.BusinessProfileRepository = firestoreRepo.businessProfileRepo
 
     private val _syncStatus = MutableStateFlow(SyncStatus.SYNCED)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus.asStateFlow()
@@ -155,6 +156,10 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         .combine(MutableStateFlow(AppSettings())) { set, default -> set ?: default }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
 
+    val businessProfile: StateFlow<com.amacezing.sales.model.BusinessProfile> = repository.businessProfileFlow
+        .combine(MutableStateFlow(com.amacezing.sales.model.BusinessProfile())) { profile, default -> profile ?: default }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.amacezing.sales.model.BusinessProfile())
+
     init {
         viewModelScope.launch {
             repository.seedInitialCatalogIfEmpty()
@@ -171,16 +176,17 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 val remoteCustomers = firestoreRepo.getCustomers()
                 val remoteTransactions = firestoreRepo.getTransactions()
                 val remoteSettings = firestoreRepo.getSettings()
+                val remoteProfile = firestoreRepo.getBusinessProfile()
 
                 // Do not mark this as restored unless Firestore actually returned data.
-                if (remoteProducts.isEmpty() && remoteCustomers.isEmpty() && remoteTransactions.isEmpty() && remoteSettings == null) {
+                if (remoteProducts.isEmpty() && remoteCustomers.isEmpty() && remoteTransactions.isEmpty() && remoteSettings == null && remoteProfile == null) {
                     _syncStatus.value = SyncStatus.SYNCED
                     return@launch
                 }
 
-                repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings)
+                repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
                 _syncStatus.value = SyncStatus.SYNCED
-                snackbarMessage.value = "Cloud backup restored to this device."
+                snackbarMessage.value = "Cloud backup and business profile restored to this device."
             } catch (e: Exception) {
                 _syncStatus.value = SyncStatus.SYNC_ERROR
                 snackbarMessage.value = "Cloud restore failed: ${e.localizedMessage ?: "Please check your connection and try Sync again."}"
@@ -765,6 +771,26 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Business Profile action
+    fun updateBusinessProfile(newProfile: com.amacezing.sales.model.BusinessProfile, onComplete: ((Boolean) -> Unit)? = null) {
+        viewModelScope.launch {
+            repository.updateBusinessProfile(newProfile)
+            try {
+                _syncStatus.value = SyncStatus.SYNCING
+                val uid = firestoreRepo.requireUserId()
+                val firestoreModel = com.amacezing.sales.data.firebase.FirestoreMappers.run { newProfile.toFirestore(uid) }
+                firestoreRepo.saveBusinessProfile(firestoreModel)
+                _syncStatus.value = SyncStatus.SYNCED
+                snackbarMessage.value = "Business branding profile updated and synced!"
+                onComplete?.invoke(true)
+            } catch (e: Exception) {
+                _syncStatus.value = SyncStatus.OFFLINE_SAVED
+                snackbarMessage.value = "Profile saved locally (Offline mode)"
+                onComplete?.invoke(true)
+            }
+        }
+    }
+
     // Bulk Synchronize all data to Cloud Firestore
     fun syncAllToCloud() {
         viewModelScope.launch {
@@ -778,8 +804,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                     val remoteCustomers = firestoreRepo.getCustomers()
                     val remoteTransactions = firestoreRepo.getTransactions()
                     val remoteSettings = firestoreRepo.getSettings()
-                    if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteSettings != null) {
-                        repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings)
+                    val remoteProfile = firestoreRepo.getBusinessProfile()
+                    if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteSettings != null || remoteProfile != null) {
+                        repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
                     }
                 }
 
@@ -806,8 +833,11 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 // Sync settings using FirestoreMappers
                 firestoreRepo.saveSettings(com.amacezing.sales.data.firebase.FirestoreMappers.run { settings.value.toFirestore(uid) })
 
+                // Sync business profile using FirestoreMappers
+                firestoreRepo.saveBusinessProfile(com.amacezing.sales.data.firebase.FirestoreMappers.run { businessProfile.value.toFirestore(uid) })
+
                 _syncStatus.value = SyncStatus.SYNCED
-                snackbarMessage.value = "All sales records successfully synchronized with Cloud Firestore!"
+                snackbarMessage.value = "All sales records and business branding successfully synchronized with Cloud Firestore!"
             } catch (e: Exception) {
                 _syncStatus.value = SyncStatus.SYNC_ERROR
                 snackbarMessage.value = "Cloud sync failed (offline or network issue): ${e.localizedMessage}"
