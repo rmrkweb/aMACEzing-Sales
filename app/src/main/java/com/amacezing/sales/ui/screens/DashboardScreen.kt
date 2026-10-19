@@ -1,5 +1,7 @@
 package com.amacezing.sales.ui.screens
 
+import com.amacezing.sales.util.formatCurrency
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -77,6 +79,7 @@ fun DashboardScreen(
     val selectedBusiness by viewModel.selectedBusiness.collectAsState()
     val dateRangeType by viewModel.dateRangeType.collectAsState()
     val metrics by viewModel.dashboardMetrics.collectAsState()
+    val settings by viewModel.settings.collectAsState()
     val filteredTransactions by viewModel.filteredTransactions.collectAsState()
     val outstandingTransactions by viewModel.outstandingTransactions.collectAsState()
     val productStats by viewModel.productSalesStats.collectAsState()
@@ -185,7 +188,7 @@ fun DashboardScreen(
 
                     MetricCard(
                         title = "Estimated Profit",
-                        value = Formatters.formatCurrency(metrics.estimatedProfit),
+                        value = metrics.estimatedProfit.formatCurrency(settings.isProfitMasked),
                         icon = Icons.Default.ShowChart,
                         iconColor = SecondaryAmber,
                         subtitle = "Margin: ${Formatters.formatPercent(metrics.profitMarginPercent)}",

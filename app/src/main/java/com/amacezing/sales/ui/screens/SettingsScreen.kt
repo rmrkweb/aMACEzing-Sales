@@ -250,6 +250,36 @@ fun SettingsScreen(
                 }
             }
 
+            // Profit privacy
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Mask Profit Values", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text(
+                                "Hide profit amounts on the dashboard until you turn this off.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = settings.isProfitMasked,
+                            onCheckedChange = { masked ->
+                                viewModel.updateSettings(settings.copy(isProfitMasked = masked))
+                            },
+                            modifier = Modifier.testTag("mask_profit_toggle")
+                        )
+                    }
+                }
+            }
+
             // Sintra Board Margin Configuration
             item {
                 Card(
