@@ -1,0 +1,124 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User Profile
+    function isValidUserProfile(data) {
+      return data.uid is string &&
+             data.email is string &&
+             data.uid == request.auth.uid;
+    }
+
+    // Business
+    function isValidBusiness(data, userId) {
+      return data.id is string &&
+             data.userId == userId &&
+             data.name is string && data.name.size() > 0 &&
+             data.type in ['ENGRAVING', 'SINTRA_BOARD'] &&
+             data.orderPrefix is string && data.orderPrefix.size() > 0;
+    }
+
+    // Product
+    function isValidProduct(data, userId) {
+      return data.id is string &&
+             data.userId == userId &&
+             data.name is string && data.name.size() > 0 &&
+             data.businessType in ['ENGRAVING', 'SINTRA_BOARD'] &&
+             data.sellingPrice is number && data.sellingPrice >= 0 &&
+             data.unitCost is number && data.unitCost >= 0 &&
+             data.isActive is bool;
+    }
+
+    // Customer
+    function isValidCustomer(data, userId) {
+      return data.id is string &&
+             data.userId == userId &&
+             data.name is string && data.name.size() > 0;
+    }
+
+    // Sales Transaction
+    function isValidTransaction(data, userId) {
+      return data.id is string &&
+             data.userId == userId &&
+             data.orderNumber is string && data.orderNumber.size() > 0 &&
+             data.businessType in ['ENGRAVING', 'SINTRA_BOARD'] &&
+             data.customerName is string && data.customerName.size() > 0 &&
+             data.grossSales is number && data.grossSales >= 0 &&
+             data.netSales is number && data.netSales >= 0 &&
+             data.estimatedProfit is number &&
+             data.paymentStatus in ['PENDING', 'PARTIALLY_PAID', 'PAID', 'CANCELLED'] &&
+             data.amountPaid is number && data.amountPaid >= 0 &&
+             data.outstandingBalance is number && data.outstandingBalance >= 0;
+    }
+
+    // Settings
+    function isValidSettings(data, userId) {
+      return data.id is string &&
+             data.userId == userId &&
+             data.businessNameEngraving is string &&
+             data.businessNameSintra is string &&
+             data.engravingOrderPrefix is string &&
+             data.sintraOrderPrefix is string &&
+             data.sintraDefaultMarginPercent is number &&
+             data.sintraUseCostCalculation is bool;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming());
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().uid == existing().uid;
+      allow delete: if isOwner(userId);
+
+      match /businesses/{businessId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidBusiness(incoming(), userId);
+        allow update: if isOwner(userId) && isValidBusiness(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /products/{productId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProduct(incoming(), userId);
+        allow update: if isOwner(userId) && isValidProduct(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /customers/{customerId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCustomer(incoming(), userId);
+        allow update: if isOwner(userId) && isValidCustomer(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /transactions/{transactionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTransaction(incoming(), userId);
+        allow update: if isOwner(userId) && isValidTransaction(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /settings/{settingId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidSettings(incoming(), userId);
+        allow update: if isOwner(userId) && isValidSettings(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

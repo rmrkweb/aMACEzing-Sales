@@ -1,0 +1,6 @@
+{
+  "name": "aMACEzing Sales",
+  "description": "Sales monitoring and business management for Engraving and Sintra Board printing businesses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

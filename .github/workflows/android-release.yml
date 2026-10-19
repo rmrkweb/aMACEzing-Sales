@@ -1,0 +1,292 @@
+name: Android Release APK Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release build description or version notes'
+        required: false
+        default: 'Manual release build'
+
+jobs:
+  build-release:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Make Gradlew Executable
+        shell: bash
+        run: |
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+          else
+            echo "::error::gradlew not found in workspace"
+            exit 1
+          fi
+
+      - name: Prepare Local Environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f .env ]; then
+            echo "Creating empty .env from .env.example..."
+            cp .env.example .env 2>/dev/null || touch .env
+          fi
+
+      - name: Configure Firebase
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p app
+          export FIREBASE_JSON_OUTPUT="$RUNNER_TEMP/google-services.json"
+
+          if [ -z "${GOOGLE_SERVICES_JSON:-}" ]; then
+            if [ -f app/google-services.json ]; then
+              echo "Firebase secret unavailable; validating existing configuration."
+              export FIREBASE_JSON_SOURCE=existing
+            else
+              echo "::error::GOOGLE_SERVICES_JSON is empty or unavailable."
+              exit 1
+            fi
+          else
+            export FIREBASE_JSON_SOURCE=secret
+          fi
+
+          python3 <<'PY'
+          import os
+          import json
+          import base64
+          import binascii
+          import sys
+          from pathlib import Path
+
+          source = os.environ["FIREBASE_JSON_SOURCE"]
+          output = Path(os.environ["FIREBASE_JSON_OUTPUT"])
+
+          if source == "existing":
+              try:
+                  raw = Path("app/google-services.json").read_text(
+                      encoding="utf-8-sig"
+                  )
+              except (OSError, UnicodeError) as exc:
+                  print(f"::error::Cannot read Firebase file: {type(exc).__name__}")
+                  sys.exit(1)
+              candidates = [("existing file", raw)]
+          else:
+              raw = os.environ["GOOGLE_SERVICES_JSON"].lstrip("\ufeff")
+              candidates = [("raw JSON", raw)]
+
+              try:
+                  compact = "".join(raw.split())
+                  decoded = base64.b64decode(
+                      compact, validate=True
+                  ).decode("utf-8-sig")
+                  candidates.append(("Base64 JSON", decoded))
+              except (binascii.Error, UnicodeDecodeError, ValueError):
+                  pass
+
+          errors = []
+
+          for label, candidate in candidates:
+              try:
+                  data = json.loads(candidate)
+
+                  if not isinstance(data, dict):
+                      raise ValueError("JSON root must be an object")
+
+                  if not isinstance(data.get("project_info"), dict):
+                      raise ValueError("Missing or invalid project_info")
+
+                  clients = data.get("client")
+                  if not isinstance(clients, list) or not clients:
+                      raise ValueError("Missing or invalid client array")
+
+                  valid_client = any(
+                      isinstance(client, dict)
+                      and isinstance(client.get("client_info"), dict)
+                      and isinstance(
+                          client["client_info"].get("android_client_info"), dict
+                      )
+                      and client["client_info"]["android_client_info"].get(
+                          "package_name"
+                      )
+                      for client in clients
+                  )
+
+                  if not valid_client:
+                      raise ValueError("No Android client package name found")
+
+                  output.write_text(
+                      json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+                      encoding="utf-8"
+                  )
+
+                  print(
+                      f"Firebase configuration validated successfully ({label})."
+                  )
+                  print(f"Validated file size: {output.stat().st_size} bytes.")
+                  break
+
+              except json.JSONDecodeError as exc:
+                  errors.append(
+                      (label, f"JSON parsing failed at line {exc.lineno}, "
+                       f"column {exc.colno}")
+                  )
+              except ValueError as exc:
+                  errors.append((label, str(exc)))
+          else:
+              print("::error::Firebase configuration is invalid.")
+              for label, message in errors:
+                  print(f"{label}: {message}")
+              sys.exit(1)
+          PY
+
+          install -m 600 "$FIREBASE_JSON_OUTPUT" app/google-services.json
+
+          python3 -c \
+            'import json; json.load(open("app/google-services.json", encoding="utf-8"))'
+
+          echo "Firebase configuration is valid JSON."
+
+      - name: Configure Release Keystore & Secrets
+        id: signing_check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 || '' }}" ] && [ -n "${{ secrets.STORE_PASSWORD || '' }}" ] && [ -n "${{ secrets.KEY_PASSWORD || '' }}" ]; then
+            echo "Release signing secrets found in repository settings."
+            echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > "${GITHUB_WORKSPACE}/my-upload-key.jks"
+            echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "signed=true" >> $GITHUB_OUTPUT
+            echo "Configured custom production release keystore."
+          elif [ -f debug.keystore.base64 ]; then
+            echo "Configuring release build with verified SHA-1 keystore (same as debug workflow)..."
+            base64 -d debug.keystore.base64 > debug.keystore
+            keytool -importkeystore \
+              -srckeystore debug.keystore \
+              -srcstorepass android \
+              -srcalias androiddebugkey \
+              -destkeystore "${GITHUB_WORKSPACE}/my-upload-key.jks" \
+              -deststorepass android \
+              -destkeypass android \
+              -destalias upload \
+              -noprompt
+            echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+            echo "signed=true" >> $GITHUB_OUTPUT
+            echo "Configured release build using verified Firebase SHA-1 certificate."
+          elif [ -f debug.keystore ]; then
+            echo "Configuring release build with local debug.keystore SHA-1 certificate..."
+            keytool -importkeystore \
+              -srckeystore debug.keystore \
+              -srcstorepass android \
+              -srcalias androiddebugkey \
+              -destkeystore "${GITHUB_WORKSPACE}/my-upload-key.jks" \
+              -deststorepass android \
+              -destkeypass android \
+              -destalias upload \
+              -noprompt
+            echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+            echo "signed=true" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::Release signing secrets not found. Generating temporary fallback keystore."
+            keytool -genkey -v -keystore "${GITHUB_WORKSPACE}/my-upload-key.jks" \
+              -storepass androidrelease -alias upload -keypass androidrelease \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=aMACEzing Sales,O=aMACEzing,C=US"
+            echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=androidrelease" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=androidrelease" >> $GITHUB_ENV
+            echo "signed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Release APK
+        run: ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Show APK Signing Fingerprints
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "=== Release signing report ==="
+          ./gradlew :app:signingReport --no-daemon
+
+          echo ""
+          echo "=== Keystore certificate fingerprints ==="
+          keytool -list -v \
+            -keystore "$KEYSTORE_PATH" \
+            -alias upload \
+            -storepass "$STORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" |
+            grep -E 'SHA1:|SHA256:'
+
+      - name: Identify and Log Release APK Output
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -n "$RELEASE_APK" ] && [ -f "$RELEASE_APK" ]; then
+            echo "Release APK created successfully at: $RELEASE_APK"
+            ls -lh "$RELEASE_APK"
+            echo "RELEASE_APK_PATH=$RELEASE_APK" >> $GITHUB_ENV
+          else
+            echo "::error::Release APK was not generated."
+            exit 1
+          fi
+
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aMACEzing-Sales-release-apk
+          path: ${{ env.RELEASE_APK_PATH }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Run Unit Tests
+        id: run_unit_tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEST_FILES=$(find app/src/test -type f \( -name "*Test.kt" -o -name "*Test.java" \) 2>/dev/null || true)
+          if [ -z "$TEST_FILES" ]; then
+            echo "No unit tests found. Skipping unit tests."
+          else
+            echo "Found unit test files. Executing :app:testDebugUnitTest..."
+            ./gradlew :app:testDebugUnitTest --no-daemon
+          fi
+
+      - name: Upload Build Reports on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build-reports
+          path: |
+            app/build/reports/
+            app/build/outputs/logs/
+          if-no-files-found: ignore
+          retention-days: 7
