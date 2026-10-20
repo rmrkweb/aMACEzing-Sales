@@ -370,13 +370,13 @@ fun QuotationDialog(
                                                                 ) {
                                                                     Text(prod.name)
                                                                     Spacer(modifier = Modifier.width(16.dp))
-                                                                    Text(Formatters.formatCurrency(prod.defaultSellingPrice), fontWeight = FontWeight.Bold)
+                                                                    Text(Formatters.formatCurrency(prod.sellingPrice), fontWeight = FontWeight.Bold)
                                                                 }
                                                             },
                                                             onClick = {
                                                                 itemState.productId = prod.id
                                                                 itemState.productName = prod.name
-                                                                itemState.unitPrice = prod.defaultSellingPrice
+                                                                itemState.unitPrice = prod.sellingPrice
                                                                 showProductPicker = false
                                                             }
                                                         )

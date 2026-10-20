@@ -28,7 +28,10 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Search
+import com.amacezing.sales.pdf.PdfDocumentGenerator
+import com.amacezing.sales.viewmodel.GeneratedPdfState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -79,6 +82,8 @@ fun TransactionsScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val statusFilter by viewModel.statusFilter.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val businessProfile by viewModel.businessProfile.collectAsState()
+    val allCustomers by viewModel.allCustomers.collectAsState()
 
     var sortByDateDesc by remember { mutableStateOf(true) }
 
@@ -349,6 +354,32 @@ fun TransactionsScreen(
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                TextButton(
+                                    onClick = {
+                                        try {
+                                            val matchingCustomer = allCustomers.firstOrNull { it.name.equals(tx.customerName, ignoreCase = true) }
+                                            val pdf = PdfDocumentGenerator.generateReceiptPdf(
+                                                context = context,
+                                                transactionWithDetails = item,
+                                                profile = businessProfile,
+                                                customer = matchingCustomer
+                                            )
+                                            viewModel.activePdfDialog.value = GeneratedPdfState(
+                                                file = pdf,
+                                                title = "Sales Receipt",
+                                                documentNumber = tx.orderNumber
+                                            )
+                                        } catch (e: Exception) {
+                                            viewModel.snackbarMessage.value = "Failed to generate receipt: ${e.message}"
+                                        }
+                                    },
+                                    modifier = Modifier.testTag("tx_receipt_btn_${tx.orderNumber}")
+                                ) {
+                                    Icon(Icons.Default.PictureAsPdf, contentDescription = "Receipt", modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Receipt", fontSize = 11.sp)
+                                }
+
                                 if (tx.outstandingBalance > 0.0 && tx.paymentStatus != PaymentStatus.CANCELLED) {
                                     TextButton(
                                         onClick = { viewModel.recordingPaymentTransaction.value = item },

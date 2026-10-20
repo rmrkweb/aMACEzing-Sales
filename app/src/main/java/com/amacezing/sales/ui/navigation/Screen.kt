@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.RequestQuote
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class Screen(val title: String, val icon: ImageVector) {
     DASHBOARD("Dashboard", Icons.Default.Dashboard),
     TRANSACTIONS("Sales", Icons.Default.ReceiptLong),
+    QUOTATIONS("Quotations", Icons.Default.RequestQuote),
     CUSTOMERS("Customers", Icons.Default.People),
     PRODUCTS("Products", Icons.Default.Inventory),
     REPORTS("Reports", Icons.Default.Analytics),

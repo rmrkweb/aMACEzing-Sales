@@ -43,6 +43,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import com.amacezing.sales.pdf.PdfDocumentGenerator
+import com.amacezing.sales.ui.components.PdfPreviewDialog
+import com.amacezing.sales.ui.components.QuotationDialog
+import com.amacezing.sales.ui.screens.QuotationsScreen
+import com.amacezing.sales.viewmodel.GeneratedPdfState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -161,9 +166,13 @@ fun MainAppScaffold(
     val allProducts by viewModel.allProducts.collectAsState()
     val allCustomers by viewModel.allCustomers.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val businessProfile by viewModel.businessProfile.collectAsState()
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     // Dialog state collections
     val showNewTxDialog by viewModel.showNewTransactionDialog.collectAsState()
+    val showNewQuotationDialog by viewModel.showNewQuotationDialog.collectAsState()
+    val activePdfDialog by viewModel.activePdfDialog.collectAsState()
     val editingTx by viewModel.editingTransaction.collectAsState()
     val viewingTx by viewModel.viewingTransaction.collectAsState()
     val recordingPaymentTx by viewModel.recordingPaymentTransaction.collectAsState()
@@ -296,6 +305,7 @@ fun MainAppScaffold(
                 val primaryScreens = listOf(
                     Screen.DASHBOARD,
                     Screen.TRANSACTIONS,
+                    Screen.QUOTATIONS,
                     Screen.CUSTOMERS,
                     Screen.PRODUCTS,
                     Screen.REPORTS
@@ -331,6 +341,7 @@ fun MainAppScaffold(
                 when (targetScreen) {
                     Screen.DASHBOARD -> DashboardScreen(viewModel = viewModel)
                     Screen.TRANSACTIONS -> TransactionsScreen(viewModel = viewModel)
+                    Screen.QUOTATIONS -> QuotationsScreen(viewModel = viewModel)
                     Screen.CUSTOMERS -> CustomersScreen(viewModel = viewModel)
                     Screen.PRODUCTS -> ProductsScreen(viewModel = viewModel)
                     Screen.REPORTS -> ReportsScreen(viewModel = viewModel)
@@ -425,6 +436,24 @@ fun MainAppScaffold(
                 viewModel.viewingTransaction.value = null
                 viewModel.recordingPaymentTransaction.value = txToView
             },
+            onGenerateReceipt = {
+                try {
+                    val matchingCustomer = allCustomers.firstOrNull { it.name.equals(txToView.transaction.customerName, ignoreCase = true) }
+                    val pdf = PdfDocumentGenerator.generateReceiptPdf(
+                        context = context,
+                        transactionWithDetails = txToView,
+                        profile = businessProfile,
+                        customer = matchingCustomer
+                    )
+                    viewModel.activePdfDialog.value = GeneratedPdfState(
+                        file = pdf,
+                        title = "Sales Receipt",
+                        documentNumber = txToView.transaction.orderNumber
+                    )
+                } catch (e: Exception) {
+                    viewModel.snackbarMessage.value = "Failed to generate receipt PDF: ${e.message}"
+                }
+            },
             onDelete = {
                 viewModel.viewingTransaction.value = null
                 viewModel.itemToDelete.value = txToView.transaction
@@ -491,5 +520,58 @@ fun MainAppScaffold(
                 )
             }
         }
+    }
+
+    if (showNewQuotationDialog) {
+        QuotationDialog(
+            availableProducts = allProducts,
+            existingCustomers = allCustomers,
+            defaultValidityDays = businessProfile.quotationValidityDays,
+            onDismiss = { viewModel.showNewQuotationDialog.value = false },
+            onSaveQuotation = { biz, cust, phone, email, addr, validity, items, dType, dVal, rem ->
+                viewModel.createQuotation(
+                    businessType = biz,
+                    customerName = cust,
+                    customerPhone = phone,
+                    customerEmail = email,
+                    customerAddress = addr,
+                    validityDays = validity,
+                    lineItems = items,
+                    discountType = dType,
+                    discountValue = dVal,
+                    remarks = rem,
+                    onComplete = { qId ->
+                        coroutineScope.launch {
+                            val snapshot = viewModel.repository.getQuotationSnapshot(qId)
+                            if (snapshot != null) {
+                                try {
+                                    val pdf = PdfDocumentGenerator.generateQuotationPdf(
+                                        context = context,
+                                        quotationWithItems = snapshot,
+                                        profile = businessProfile
+                                    )
+                                    viewModel.activePdfDialog.value = GeneratedPdfState(
+                                        file = pdf,
+                                        title = "Price Quotation",
+                                        documentNumber = snapshot.quotation.quotationNumber
+                                    )
+                                } catch (e: Exception) {
+                                    viewModel.snackbarMessage.value = "Failed to generate PDF: ${e.message}"
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+        )
+    }
+
+    activePdfDialog?.let { pdfState ->
+        PdfPreviewDialog(
+            pdfFile = pdfState.file,
+            title = pdfState.title,
+            documentNumber = pdfState.documentNumber,
+            onDismiss = { viewModel.activePdfDialog.value = null }
+        )
     }
 }

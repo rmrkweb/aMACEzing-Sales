@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Discount
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.RequestQuote
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Warning
@@ -39,6 +40,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -130,13 +132,24 @@ fun DashboardScreen(
                         }
                     }
 
-                    Button(
-                        onClick = { viewModel.showNewTransactionDialog.value = true },
-                        modifier = Modifier.testTag("dashboard_new_order_button")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "New Order", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("New Order")
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedButton(
+                            onClick = { viewModel.showNewQuotationDialog.value = true },
+                            modifier = Modifier.testTag("dashboard_new_quotation_button")
+                        ) {
+                            Icon(Icons.Default.RequestQuote, contentDescription = "New Quote", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("New Quote")
+                        }
+
+                        Button(
+                            onClick = { viewModel.showNewTransactionDialog.value = true },
+                            modifier = Modifier.testTag("dashboard_new_order_button")
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "New Order", modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("New Order")
+                        }
                     }
                 }
             }

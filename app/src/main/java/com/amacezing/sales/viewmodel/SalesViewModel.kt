@@ -1067,9 +1067,8 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
             val convertedLineItems = items.map { item ->
                 LineItemInput(
-                    productId = item.productId ?: 0L,
                     quantity = item.quantity,
-                    unitPrice = item.unitPrice,
+                    unitSellingPrice = item.unitPrice,
                     unitCost = 0.0
                 )
             }

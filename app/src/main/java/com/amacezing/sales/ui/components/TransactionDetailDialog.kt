@@ -21,7 +21,9 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -57,6 +59,7 @@ fun TransactionDetailDialog(
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
     onRecordPayment: () -> Unit,
+    onGenerateReceipt: () -> Unit = {},
     onDelete: () -> Unit
 ) {
     val tx = transactionWithDetails.transaction
@@ -308,6 +311,16 @@ fun TransactionDetailDialog(
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = onGenerateReceipt,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.testTag("generate_receipt_pdf_button")
+                        ) {
+                            Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Receipt")
+                        }
+
                         OutlinedButton(
                             onClick = onDuplicate,
                             modifier = Modifier.testTag("duplicate_order_button")

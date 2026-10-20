@@ -163,7 +163,8 @@ object PdfDocumentGenerator {
     fun generateReceiptPdf(
         context: Context,
         transactionWithDetails: TransactionWithDetails,
-        profile: BusinessProfile
+        profile: BusinessProfile,
+        customer: com.amacezing.sales.model.Customer? = null
     ): File {
         val tx = transactionWithDetails.transaction
         val items = transactionWithDetails.lineItems
@@ -199,9 +200,9 @@ object PdfDocumentGenerator {
             canvas = canvas,
             title = "RECEIPT ISSUED TO",
             name = tx.customerName,
-            contact = "",
-            email = "",
-            address = "",
+            contact = customer?.phone.orEmpty(),
+            email = customer?.email.orEmpty(),
+            address = customer?.notes.orEmpty(),
             division = "${tx.businessType.displayName} Division",
             startY = currentY
         )
@@ -741,7 +742,7 @@ object PdfDocumentGenerator {
         canvas.drawText(footerNote, PAGE_WIDTH / 2f, bottomLineY + 14f, footerPaint)
 
         val subFooterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = COLOR_TEXT_MUTED.copy()
+            color = COLOR_TEXT_MUTED
             textSize = 6.5f
             textAlign = Paint.Align.CENTER
         }
