@@ -798,6 +798,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     // Bulk Synchronize all data to Cloud Firestore
     fun syncAllToCloud() {
         viewModelScope.launch {
+            var step = "start"
             try {
                 _syncStatus.value = SyncStatus.SYNCING
                 val uid = firestoreRepo.requireUserId()
@@ -814,37 +815,44 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                step = "users/$uid (profile)"
                 firestoreRepo.saveUserProfile()
+                step = "users/$uid/businesses"
                 firestoreRepo.seedDefaultBusinessesIfEmpty()
 
                 // Sync products using FirestoreMappers
                 for (p in allProducts.value) {
+                    step = "users/$uid/products/${p.id}"
                     firestoreRepo.saveProduct(com.amacezing.sales.data.firebase.FirestoreMappers.run { p.toFirestore(uid) })
                 }
 
                 // Sync customers using FirestoreMappers
                 for (c in allCustomers.value) {
+                    step = "users/$uid/customers/${c.id}"
                     firestoreRepo.saveCustomer(com.amacezing.sales.data.firebase.FirestoreMappers.run { c.toFirestore(uid) })
                 }
 
                 // Sync transactions using FirestoreMappers
                 for (item in allTransactions.value) {
                     val tx = item.transaction
+                    step = "users/$uid/transactions/${tx.id}"
                     val summary = item.lineItems.joinToString("; ") { "${it.productName} (x${it.quantity})" }
                     firestoreRepo.saveTransaction(com.amacezing.sales.data.firebase.FirestoreMappers.run { tx.toFirestore(uid, summary) })
                 }
 
                 // Sync settings using FirestoreMappers
+                step = "users/$uid/settings/default"
                 firestoreRepo.saveSettings(com.amacezing.sales.data.firebase.FirestoreMappers.run { settings.value.toFirestore(uid) })
 
                 // Sync business profile using FirestoreMappers
+                step = "users/$uid/business_profile"
                 firestoreRepo.saveBusinessProfile(com.amacezing.sales.data.firebase.FirestoreMappers.run { businessProfile.value.toFirestore(uid) })
 
                 _syncStatus.value = SyncStatus.SYNCED
                 snackbarMessage.value = "All sales records and business branding successfully synchronized with Cloud Firestore!"
             } catch (e: Exception) {
                 _syncStatus.value = SyncStatus.SYNC_ERROR
-                snackbarMessage.value = "Cloud sync failed (offline or network issue): ${e.localizedMessage}"
+                snackbarMessage.value = "Cloud sync failed at $step: ${e.localizedMessage}"
             }
         }
     }
