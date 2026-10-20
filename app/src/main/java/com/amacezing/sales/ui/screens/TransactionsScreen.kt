@@ -28,14 +28,12 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Search
-import com.amacezing.sales.pdf.PdfDocumentGenerator
-import com.amacezing.sales.viewmodel.GeneratedPdfState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -82,8 +80,6 @@ fun TransactionsScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val statusFilter by viewModel.statusFilter.collectAsState()
     val settings by viewModel.settings.collectAsState()
-    val businessProfile by viewModel.businessProfile.collectAsState()
-    val allCustomers by viewModel.allCustomers.collectAsState()
 
     var sortByDateDesc by remember { mutableStateOf(true) }
 
@@ -136,24 +132,13 @@ fun TransactionsScreen(
                         )
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(
-                            onClick = { shareCsvExport() },
-                            modifier = Modifier.testTag("export_transactions_csv_button")
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = "Export CSV", modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("CSV")
-                        }
-
-                        Button(
-                            onClick = { viewModel.showNewTransactionDialog.value = true },
-                            modifier = Modifier.testTag("transactions_add_order_button")
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Order", modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("New")
-                        }
+                    OutlinedButton(
+                        onClick = { shareCsvExport() },
+                        modifier = Modifier.testTag("export_transactions_csv_button")
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = "Export CSV", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("CSV")
                     }
                 }
             }
@@ -354,32 +339,6 @@ fun TransactionsScreen(
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                TextButton(
-                                    onClick = {
-                                        try {
-                                            val matchingCustomer = allCustomers.firstOrNull { it.name.equals(tx.customerName, ignoreCase = true) }
-                                            val pdf = PdfDocumentGenerator.generateReceiptPdf(
-                                                context = context,
-                                                transactionWithDetails = item,
-                                                profile = businessProfile,
-                                                customer = matchingCustomer
-                                            )
-                                            viewModel.activePdfDialog.value = GeneratedPdfState(
-                                                file = pdf,
-                                                title = "Sales Receipt",
-                                                documentNumber = tx.orderNumber
-                                            )
-                                        } catch (e: Exception) {
-                                            viewModel.snackbarMessage.value = "Failed to generate receipt: ${e.message}"
-                                        }
-                                    },
-                                    modifier = Modifier.testTag("tx_receipt_btn_${tx.orderNumber}")
-                                ) {
-                                    Icon(Icons.Default.PictureAsPdf, contentDescription = "Receipt", modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Receipt", fontSize = 11.sp)
-                                }
-
                                 if (tx.outstandingBalance > 0.0 && tx.paymentStatus != PaymentStatus.CANCELLED) {
                                     TextButton(
                                         onClick = { viewModel.recordingPaymentTransaction.value = item },
@@ -416,6 +375,19 @@ fun TransactionsScreen(
             item {
                 Spacer(modifier = Modifier.height(70.dp))
             }
+        }
+
+        // Floating Action Button
+        FloatingActionButton(
+            onClick = { viewModel.showNewTransactionDialog.value = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(20.dp)
+                .testTag("transactions_add_order_button"),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Add Order")
         }
     }
 }
