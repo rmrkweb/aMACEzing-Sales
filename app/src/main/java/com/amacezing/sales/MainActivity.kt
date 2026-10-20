@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -245,20 +246,32 @@ fun MainAppScaffold(
                         onClick = { viewModel.navigateTo(Screen.PROFILE) },
                         modifier = Modifier.testTag("top_nav_profile")
                     ) {
-                        Surface(
-                            shape = androidx.compose.foundation.shape.CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                val initials = (currentUser.displayName ?: currentUser.email ?: "U")
-                                    .take(1).uppercase()
-                                Text(
-                                    text = initials,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
+                        val photoUrl = currentUser.photoUrl?.toString()
+                        if (!photoUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = photoUrl,
+                                contentDescription = "Profile",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                            )
+                        } else {
+                            Surface(
+                                shape = androidx.compose.foundation.shape.CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    val initials = (currentUser.displayName ?: currentUser.email ?: "U")
+                                        .take(1).uppercase()
+                                    Text(
+                                        text = initials,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
                             }
                         }
                     }
@@ -280,7 +293,7 @@ fun MainAppScaffold(
                     Screen.QUOTATIONS,
                     Screen.TRANSACTIONS,
                     Screen.PRODUCTS,
-                    Screen.PROFILE
+                    Screen.SETTINGS
                 )
 
                 primaryScreens.forEach { screen ->
