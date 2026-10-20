@@ -3,7 +3,6 @@ package com.amacezing.sales.ui.screens
 import com.amacezing.sales.util.formatCurrency
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,14 +21,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Discount
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.RequestQuote
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Warning
@@ -40,7 +37,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,10 +45,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,64 +90,24 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Header
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Image(
-                            painter = painterResource(id = com.amacezing.sales.R.drawable.amacezing_logo),
-                            contentDescription = "aMACEzing Printing Services logo",
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(RoundedCornerShape(9.dp))
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "aMACEzing Sales",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "Sales Monitoring & Profit Dashboard",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        OutlinedButton(
-                            onClick = { viewModel.showNewQuotationDialog.value = true },
-                            modifier = Modifier.testTag("dashboard_new_quotation_button")
-                        ) {
-                            Icon(Icons.Default.RequestQuote, contentDescription = "New Quote", modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("New Quote")
-                        }
-
-                        Button(
-                            onClick = { viewModel.showNewTransactionDialog.value = true },
-                            modifier = Modifier.testTag("dashboard_new_order_button")
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "New Order", modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("New Order")
-                        }
-                    }
-                }
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Dashboard",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Sales Monitoring & Profit Dashboard",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+        }
 
-            // Business Selector
+        // Business Selector
             item {
                 BusinessFilterChips(
                     selectedBusiness = selectedBusiness,
