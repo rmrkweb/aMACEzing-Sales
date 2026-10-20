@@ -2,48 +2,57 @@ package com.amacezing.sales.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand Primary Colors (Deep Emerald Teal - Precision, Trust, Growth)
-val PrimaryTeal = Color(0xFF0878D1)
-val PrimaryTealLight = Color(0xFF00B8F0)
-val PrimaryTealDark = Color(0xFF063A63)
+// Visual Design System Palette (Facebook & LinkedIn Inspired Clean Dark Aesthetic)
+val AppBackground = Color(0xFF0B0F14)
+val AppSurface = Color(0xFF151B23)
+val AppSurfaceElevated = Color(0xFF1C2430)
+val AppBorder = Color(0xFF2A3441)
 
-// Brand Secondary (Warm Amber Gold - Prosperity, Profit, High Contrast)
-val SecondaryAmber = Color(0xFF00B8F0)
-val SecondaryAmberLight = Color(0xFF39C7FF)
-val SecondaryAmberDark = Color(0xFF0878D1)
+val AppTextPrimary = Color(0xFFF3F6FA)
+val AppTextSecondary = Color(0xFF9AA6B2)
+val AppTextMuted = Color(0xFF64748B)
 
-// Brand Businesses
-val EngravingBrown = Color(0xFF0878D1) // Brand blue accent
-val SintraBoardBlue = Color(0xFF00B8F0) // Logo cyan accent
+// Accents
+val AccentCyan = Color(0xFF00B8F0)
+val AccentViolet = Color(0xFFA78BFA)
 
 // Semantic Status Colors
-val StatusPaid = Color(0xFF16A34A)
-val StatusPartiallyPaid = Color(0xFF0284C7)
-val StatusPending = Color(0xFFD97706)
-val StatusCancelled = Color(0xFFDC2626)
+val StatusPaid = Color(0xFF22C55E)          // Accessible success green
+val StatusPartiallyPaid = Color(0xFF00B8F0)  // Cyan accent
+val StatusPending = Color(0xFFF59E0B)       // Accessible warning amber
+val StatusCancelled = Color(0xFFEF4444)     // Accessible error red
 
-// Neutral & Backgrounds
+// Business Divisions
+val EngravingCyan = Color(0xFF00B8F0)
+val SintraBoardViolet = Color(0xFFA78BFA)
+
+// Compatibility aliases for existing references across codebase
+val PrimaryTeal = AccentCyan
+val PrimaryTealLight = AccentCyan
+val PrimaryTealDark = Color(0xFF00384D)
+val SecondaryAmber = StatusPending
+val SecondaryAmberLight = Color(0xFFFBBF24)
+val SecondaryAmberDark = Color(0xFFB45309)
+val EngravingBrown = AccentCyan
+val SintraBoardBlue = AccentViolet
+val SurfaceDark = AppBackground
+val SurfaceCardDark = AppSurface
+val TextPrimaryDark = AppTextPrimary
+val TextSecondaryDark = AppTextSecondary
 val SurfaceLight = Color(0xFFF8FAFC)
 val SurfaceCardLight = Color(0xFFFFFFFF)
 val TextPrimaryLight = Color(0xFF0F172A)
 val TextSecondaryLight = Color(0xFF64748B)
 
-val SurfaceDark = Color(0xFF0F172A)
-val SurfaceCardDark = Color(0xFF1E293B)
-val TextPrimaryDark = Color(0xFFF8FAFC)
-val TextSecondaryDark = Color(0xFF94A3B8)
-
-// Dark Technology Palette (Auth Screen & Brand Showcase)
-val TechBgNearBlack = Color(0xFF020817)
-val TechSurfaceDeepNavy = Color(0xFF071321)
-val TechSurfaceSecondary = Color(0xFF06101F)
-val TechAccentCyan = Color(0xFF00B8F0)
-val TechAccentViolet = Color(0xFFA78BFA)
-val TechAccentDeepBlue = Color(0xFF0878D1)
-val TechTextPrimary = Color(0xFFF5F8FC)
-val TechTextSecondary = Color(0xFFB8C7D9)
-val TechTextSilver = Color(0xFFCBD5E1)
-val TechBorderSubtle = Color(0xFF123B60)
-val TechBadgeBg = Color(0xFF09223D)
-
-
+// Technology theme aliases
+val TechBgNearBlack = AppBackground
+val TechSurfaceDeepNavy = AppSurface
+val TechSurfaceSecondary = AppSurfaceElevated
+val TechAccentCyan = AccentCyan
+val TechAccentViolet = AccentViolet
+val TechAccentDeepBlue = Color(0xFF0284C7)
+val TechTextPrimary = AppTextPrimary
+val TechTextSecondary = AppTextSecondary
+val TechTextSilver = AppTextPrimary
+val TechBorderSubtle = AppBorder
+val TechBadgeBg = AppSurfaceElevated

@@ -29,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Logout
@@ -214,46 +215,29 @@ fun MainAppScaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = com.amacezing.sales.R.drawable.amacezing_logo),
-                            contentDescription = "aMACEzing Printing Services logo",
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(7.dp))
+                    Column {
+                        Text(
+                            text = "aMACEzing Sales",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            shape = MaterialTheme.shapes.extraSmall,
-                            color = MaterialTheme.colorScheme.primaryContainer
-                        ) {
-                            Text(
-                                text = "SALES",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            imageVector = Icons.Default.CloudDone,
-                            contentDescription = "Cloud Connected",
-                            tint = StatusPaid,
-                            modifier = Modifier.size(16.dp)
+                        Text(
+                            text = "Engraving & Sintra Board Printing Manager",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 actions = {
                     IconButton(
-                        onClick = { viewModel.navigateTo(Screen.IMPORT_EXPORT) },
-                        modifier = Modifier.testTag("top_nav_import_export")
+                        onClick = { viewModel.navigateTo(Screen.TRANSACTIONS) },
+                        modifier = Modifier.testTag("top_nav_search")
                     ) {
                         Icon(
-                            Icons.Default.FileUpload,
-                            contentDescription = "Excel Migration",
-                            tint = if (currentScreen == Screen.IMPORT_EXPORT) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            Icons.Default.Search,
+                            contentDescription = "Search",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -261,33 +245,22 @@ fun MainAppScaffold(
                         onClick = { viewModel.navigateTo(Screen.PROFILE) },
                         modifier = Modifier.testTag("top_nav_profile")
                     ) {
-                        Icon(
-                            Icons.Default.Storefront,
-                            contentDescription = "Business Profile & Branding",
-                            tint = if (currentScreen == Screen.PROFILE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    IconButton(
-                        onClick = { viewModel.navigateTo(Screen.SETTINGS) },
-                        modifier = Modifier.testTag("top_nav_settings")
-                    ) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = if (currentScreen == Screen.SETTINGS) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onSignOut,
-                        modifier = Modifier.testTag("top_nav_sign_out")
-                    ) {
-                        Icon(
-                            Icons.Default.Logout,
-                            contentDescription = "Sign Out",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Surface(
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                val initials = (currentUser.displayName ?: currentUser.email ?: "U")
+                                    .take(1).uppercase()
+                                Text(
+                                    text = initials,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -304,11 +277,10 @@ fun MainAppScaffold(
             ) {
                 val primaryScreens = listOf(
                     Screen.DASHBOARD,
-                    Screen.TRANSACTIONS,
                     Screen.QUOTATIONS,
-                    Screen.CUSTOMERS,
+                    Screen.TRANSACTIONS,
                     Screen.PRODUCTS,
-                    Screen.REPORTS
+                    Screen.PROFILE
                 )
 
                 primaryScreens.forEach { screen ->
