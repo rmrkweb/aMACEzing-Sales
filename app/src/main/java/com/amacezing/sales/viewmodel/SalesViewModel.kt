@@ -22,6 +22,8 @@ import com.amacezing.sales.util.ImportPreviewSummary
 import com.amacezing.sales.util.ImportValidationRow
 import com.amacezing.sales.util.LineItemInput
 import com.amacezing.sales.util.SalesCalculator
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -169,6 +171,49 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Restores cloud records (incl. order lines, payments and the logo), then removes duplicate products. */
+    private suspend fun restoreFromRemote(
+        products: List<com.amacezing.sales.data.firebase.FirestoreProduct>,
+        customers: List<com.amacezing.sales.data.firebase.FirestoreCustomer>,
+        transactions: List<com.amacezing.sales.data.firebase.FirestoreTransaction>,
+        settings: com.amacezing.sales.data.firebase.FirestoreSettings?,
+        profile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile?
+    ) {
+        val logoPath = profile?.logoBase64
+            ?.takeIf { it.isNotBlank() }
+            ?.let { com.amacezing.sales.util.LogoCodec.decodeBase64ToFile(getApplication(), it) }
+        repository.restoreCloudRecords(products, customers, transactions, settings, profile, logoPath)
+        dedupeProductsEverywhere()
+    }
+
+    /** Merges same-name products locally and deletes the extra copies from Firestore too. */
+    private suspend fun dedupeProductsEverywhere() {
+        val removed = repository.dedupeProducts()
+        removed.forEach { id ->
+            try { firestoreRepo.deleteProduct(id.toString()) } catch (_: Exception) { /* offline: next sync */ }
+        }
+    }
+
+    /** Pushes one order (with its lines and payments) to the cloud, built from the local database. */
+    private suspend fun pushTransactionToCloud(transactionId: String) {
+        val details = repository.getTransactionDetailsSnapshot(transactionId) ?: return
+        val uid = firestoreRepo.requireUserId()
+        val summary = details.lineItems.joinToString("; ") { "${it.productName} (x${it.quantity})" }
+        firestoreRepo.saveTransaction(
+            com.amacezing.sales.data.firebase.FirestoreMappers.run {
+                details.transaction.toFirestore(uid, summary, details.lineItems, details.payments)
+            }
+        )
+    }
+
+    /** Business profile as a cloud model, including the logo image. */
+    private fun profileForCloud(
+        profile: com.amacezing.sales.model.BusinessProfile,
+        uid: String
+    ): com.amacezing.sales.data.firebase.FirestoreBusinessProfile =
+        com.amacezing.sales.data.firebase.FirestoreMappers.run { profile.toFirestore(uid) }
+            .copy(logoBase64 = com.amacezing.sales.util.LogoCodec.encodeFileToBase64(profile.logoUri))
+
     /** Restore the user's Firestore backup on a fresh install before normal sync can upload empty Room data. */
     fun restoreFromCloudIfLocalEmpty() {
         viewModelScope.launch {
@@ -187,7 +232,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
+                restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
                 _syncStatus.value = SyncStatus.SYNCED
                 snackbarMessage.value = "Cloud backup and business profile restored to this device."
             } catch (e: Exception) {
@@ -492,30 +537,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             // Cloud sync (offline-first)
             try {
                 _syncStatus.value = SyncStatus.SYNCING
-                val summary = mappedLines.joinToString("; ") { "${it.productName} (x${it.quantity})" }
-                firestoreRepo.saveTransaction(
-                    com.amacezing.sales.data.firebase.FirestoreTransaction(
-                        id = newTransaction.id,
-                        userId = firestoreRepo.requireUserId(),
-                        orderNumber = newTransaction.orderNumber,
-                        businessType = newTransaction.businessType.name,
-                        customerName = newTransaction.customerName,
-                        orderDateEpochMillis = newTransaction.orderDateEpochMillis,
-                        discountType = newTransaction.discountType.name,
-                        discountPercentage = newTransaction.discountPercentage,
-                        discountAmount = newTransaction.discountAmount,
-                        grossSales = newTransaction.grossSales,
-                        netSales = newTransaction.netSales,
-                        totalProductCost = newTransaction.totalProductCost,
-                        estimatedProfit = newTransaction.estimatedProfit,
-                        paymentStatus = newTransaction.paymentStatus.name,
-                        amountPaid = newTransaction.amountPaid,
-                        outstandingBalance = newTransaction.outstandingBalance,
-                        paymentNotes = newTransaction.paymentNotes,
-                        remarks = newTransaction.remarks,
-                        lineItemsSummary = summary
-                    )
-                )
+                pushTransactionToCloud(newTransaction.id)
                 _syncStatus.value = SyncStatus.SYNCED
             } catch (_: Exception) {
                 _syncStatus.value = SyncStatus.OFFLINE_SAVED
@@ -579,30 +601,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             // Cloud sync
             try {
                 _syncStatus.value = SyncStatus.SYNCING
-                val summary = mappedLines.joinToString("; ") { "${it.productName} (x${it.quantity})" }
-                firestoreRepo.saveTransaction(
-                    com.amacezing.sales.data.firebase.FirestoreTransaction(
-                        id = updatedTx.id,
-                        userId = firestoreRepo.requireUserId(),
-                        orderNumber = updatedTx.orderNumber,
-                        businessType = updatedTx.businessType.name,
-                        customerName = updatedTx.customerName,
-                        orderDateEpochMillis = updatedTx.orderDateEpochMillis,
-                        discountType = updatedTx.discountType.name,
-                        discountPercentage = updatedTx.discountPercentage,
-                        discountAmount = updatedTx.discountAmount,
-                        grossSales = updatedTx.grossSales,
-                        netSales = updatedTx.netSales,
-                        totalProductCost = updatedTx.totalProductCost,
-                        estimatedProfit = updatedTx.estimatedProfit,
-                        paymentStatus = updatedTx.paymentStatus.name,
-                        amountPaid = updatedTx.amountPaid,
-                        outstandingBalance = updatedTx.outstandingBalance,
-                        paymentNotes = updatedTx.paymentNotes,
-                        remarks = updatedTx.remarks,
-                        lineItemsSummary = summary
-                    )
-                )
+                pushTransactionToCloud(updatedTx.id)
                 _syncStatus.value = SyncStatus.SYNCED
             } catch (_: Exception) {
                 _syncStatus.value = SyncStatus.OFFLINE_SAVED
@@ -639,25 +638,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             val updated = allTransactions.value.find { it.transaction.id == transactionId }
             if (updated != null) {
                 try {
-                    val tx = updated.transaction
-                    firestoreRepo.saveTransaction(
-                        com.amacezing.sales.data.firebase.FirestoreTransaction(
-                            id = tx.id,
-                            userId = firestoreRepo.requireUserId(),
-                            orderNumber = tx.orderNumber,
-                            businessType = tx.businessType.name,
-                            customerName = tx.customerName,
-                            orderDateEpochMillis = tx.orderDateEpochMillis,
-                            grossSales = tx.grossSales,
-                            netSales = tx.netSales,
-                            estimatedProfit = tx.estimatedProfit,
-                            paymentStatus = tx.paymentStatus.name,
-                            amountPaid = tx.amountPaid,
-                            outstandingBalance = tx.outstandingBalance,
-                            paymentNotes = tx.paymentNotes,
-                            remarks = tx.remarks
-                        )
-                    )
+                    pushTransactionToCloud(updated.transaction.id)
                     _syncStatus.value = SyncStatus.SYNCED
                 } catch (_: Exception) {
                     _syncStatus.value = SyncStatus.OFFLINE_SAVED
@@ -782,8 +763,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 _syncStatus.value = SyncStatus.SYNCING
                 val uid = firestoreRepo.requireUserId()
-                val firestoreModel = com.amacezing.sales.data.firebase.FirestoreMappers.run { newProfile.toFirestore(uid) }
-                firestoreRepo.saveBusinessProfile(firestoreModel)
+                firestoreRepo.saveBusinessProfile(profileForCloud(newProfile, uid))
                 _syncStatus.value = SyncStatus.SYNCED
                 snackbarMessage.value = "Business branding profile updated and synced!"
                 onComplete?.invoke(true)
@@ -800,71 +780,91 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { performCloudSync() }
     }
 
+    private val _lastSyncError = MutableStateFlow<String?>(null)
+    /** Reason the most recent sync failed (shown in the logout dialog). */
+    val lastSyncError: StateFlow<String?> = _lastSyncError.asStateFlow()
+
+    /** Runs the writes in small parallel groups; sequential awaits made big syncs very slow. */
+    private suspend fun <T> inParallel(items: List<T>, groupSize: Int = 20, block: suspend (T) -> Unit) {
+        items.chunked(groupSize).forEach { group ->
+            kotlinx.coroutines.coroutineScope {
+                group.map { item -> async { block(item) } }.awaitAll()
+            }
+        }
+    }
+
     /** Full cloud sync. Returns true on success. [silent] suppresses snackbars (used by the logout flow). */
     suspend fun performCloudSync(silent: Boolean = false): Boolean {
-            var step = "start"
-            try {
-                _syncStatus.value = SyncStatus.SYNCING
-                val uid = firestoreRepo.requireUserId()
+        var step = "start"
+        _lastSyncError.value = null
+        try {
+            _syncStatus.value = SyncStatus.SYNCING
+            val uid = firestoreRepo.requireUserId()
 
-                // On a fresh install, restore first. Never upload empty local lists over the cloud backup.
-                if (repository.isLocalSalesDataEmpty()) {
-                    val remoteProducts = firestoreRepo.getProducts()
-                    val remoteCustomers = firestoreRepo.getCustomers()
-                    val remoteTransactions = firestoreRepo.getTransactions()
-                    val remoteSettings = firestoreRepo.getSettings()
-                    val remoteProfile = firestoreRepo.getBusinessProfile()
-                    if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteSettings != null || remoteProfile != null) {
-                        repository.restoreCloudRecords(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
-                    }
+            // On a fresh install, restore first. Never upload empty local lists over the cloud backup.
+            if (repository.isLocalSalesDataEmpty()) {
+                step = "restore from cloud"
+                val remoteProducts = firestoreRepo.getProducts()
+                val remoteCustomers = firestoreRepo.getCustomers()
+                val remoteTransactions = firestoreRepo.getTransactions()
+                val remoteSettings = firestoreRepo.getSettings()
+                val remoteProfile = firestoreRepo.getBusinessProfile()
+                if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteSettings != null || remoteProfile != null) {
+                    restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
                 }
-
-                step = "users/$uid (profile)"
-                firestoreRepo.saveUserProfile()
-                step = "users/$uid/businesses"
-                firestoreRepo.seedDefaultBusinessesIfEmpty()
-
-                // Sync products using FirestoreMappers
-                for (p in allProducts.value) {
-                    step = "users/$uid/products/${p.id}"
-                    firestoreRepo.saveProduct(com.amacezing.sales.data.firebase.FirestoreMappers.run { p.toFirestore(uid) })
-                }
-
-                // Sync customers using FirestoreMappers
-                for (c in allCustomers.value) {
-                    step = "users/$uid/customers/${c.id}"
-                    firestoreRepo.saveCustomer(com.amacezing.sales.data.firebase.FirestoreMappers.run { c.toFirestore(uid) })
-                }
-
-                // Sync transactions using FirestoreMappers
-                for (item in allTransactions.value) {
-                    val tx = item.transaction
-                    step = "users/$uid/transactions/${tx.id}"
-                    val summary = item.lineItems.joinToString("; ") { "${it.productName} (x${it.quantity})" }
-                    firestoreRepo.saveTransaction(com.amacezing.sales.data.firebase.FirestoreMappers.run { tx.toFirestore(uid, summary) })
-                }
-
-                // Sync settings using FirestoreMappers
-                step = "users/$uid/settings/default"
-                firestoreRepo.saveSettings(com.amacezing.sales.data.firebase.FirestoreMappers.run { settings.value.toFirestore(uid) })
-
-                // Sync business profile using FirestoreMappers
-                step = "users/$uid/business_profile"
-                firestoreRepo.saveBusinessProfile(com.amacezing.sales.data.firebase.FirestoreMappers.run { businessProfile.value.toFirestore(uid) })
-
-                _syncStatus.value = SyncStatus.SYNCED
-                if (!silent) snackbarMessage.value = "All sales records and business branding successfully synchronized with Cloud Firestore!"
-                return true
-            } catch (e: Exception) {
-                _syncStatus.value = SyncStatus.SYNC_ERROR
-                if (!silent) snackbarMessage.value = "Cloud sync failed at $step: ${e.localizedMessage}"
-                return false
             }
+
+            // Clean up duplicate products (local + cloud) before uploading anything.
+            step = "remove duplicate products"
+            dedupeProductsEverywhere()
+
+            step = "users/$uid (profile)"
+            firestoreRepo.saveUserProfile()
+            step = "users/$uid/businesses"
+            firestoreRepo.seedDefaultBusinessesIfEmpty()
+
+            val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
+
+            step = "users/$uid/products"
+            inParallel(repository.getProductsSnapshot()) { p ->
+                firestoreRepo.saveProduct(mapper.run { p.toFirestore(uid) })
+            }
+
+            step = "users/$uid/customers"
+            inParallel(allCustomers.value) { c ->
+                firestoreRepo.saveCustomer(mapper.run { c.toFirestore(uid) })
+            }
+
+            step = "users/$uid/transactions"
+            inParallel(allTransactions.value.map { it.transaction.id }) { id ->
+                pushTransactionToCloud(id)
+            }
+
+            step = "users/$uid/settings/default"
+            firestoreRepo.saveSettings(mapper.run { settings.value.toFirestore(uid) })
+
+            step = "users/$uid/business_profile"
+            val currentProfile = repository.getBusinessProfileSnapshot() ?: businessProfile.value
+            firestoreRepo.saveBusinessProfile(profileForCloud(currentProfile, uid))
+
+            _syncStatus.value = SyncStatus.SYNCED
+            if (!silent) snackbarMessage.value = "All sales records and business branding successfully synchronized with Cloud Firestore!"
+            return true
+        } catch (e: Exception) {
+            _syncStatus.value = SyncStatus.SYNC_ERROR
+            val detail = "Failed at $step: ${e.localizedMessage ?: e.javaClass.simpleName}"
+            _lastSyncError.value = detail
+            if (!silent) snackbarMessage.value = "Cloud sync failed at $step: ${e.localizedMessage}"
+            return false
+        }
     }
 
     /** Used before logout: sync everything, but never hang forever when offline. */
-    suspend fun syncBeforeLogout(): Boolean =
-        kotlinx.coroutines.withTimeoutOrNull(20_000L) { performCloudSync(silent = true) } ?: false
+    suspend fun syncBeforeLogout(): Boolean {
+        val result = kotlinx.coroutines.withTimeoutOrNull(90_000L) { performCloudSync(silent = true) }
+        if (result == null) _lastSyncError.value = "Timed out after 90 seconds. Check your internet connection."
+        return result == true
+    }
 
     /**
      * Logout cleanup: wipes all local data so the device is back to a fresh install
@@ -875,6 +875,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
         // Room: remove every row, then re-seed defaults exactly like a first install.
         database.clearAllTables()
+        // Room's clearAllTables keeps the AUTOINCREMENT counters, so re-seeded products would get new ids
+        // (5, 6, 7...) and duplicate the cloud copies on restore. Reset the counters like a fresh install.
+        database.openHelper.writableDatabase.execSQL("DELETE FROM sqlite_sequence")
         AppDatabase.populateInitialData(database)
 
         // Branding logo copy, cached PDFs / downloaded updates.
