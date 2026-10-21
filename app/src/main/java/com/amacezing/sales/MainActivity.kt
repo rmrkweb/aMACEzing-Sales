@@ -201,12 +201,20 @@ fun AppRoot(viewModel: SalesViewModel) {
             viewModel = viewModel,
             currentUser = currentUser!!,
             onSignOut = {
-                signOut(
-                    context = context,
-                    credentialManager = credentialManager,
-                    onSignOutComplete = { currentUser = null },
-                    scope = coroutineScope
-                )
+                coroutineScope.launch {
+                    // Clear local data first (while still signed in), then sign out -> Google sign-in screen.
+                    try {
+                        viewModel.wipeLocalData()
+                    } catch (e: Exception) {
+                        android.util.Log.e("Logout", "Failed to wipe local data", e)
+                    }
+                    signOut(
+                        context = context,
+                        credentialManager = credentialManager,
+                        onSignOutComplete = { currentUser = null },
+                        scope = coroutineScope
+                    )
+                }
             }
         )
     }
@@ -391,7 +399,7 @@ fun MainAppScaffold(
                     Screen.REPORTS -> ReportsScreen(viewModel = viewModel)
                     Screen.IMPORT_EXPORT -> ImportExportScreen(viewModel = viewModel)
                     Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
-                    Screen.PROFILE -> ProfileScreen(viewModel = viewModel, currentUser = currentUser)
+                    Screen.PROFILE -> ProfileScreen(viewModel = viewModel, currentUser = currentUser, onSignOut = onSignOut)
                 }
             }
         }
