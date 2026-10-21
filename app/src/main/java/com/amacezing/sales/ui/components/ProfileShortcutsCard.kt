@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -55,6 +56,7 @@ fun ProfileShortcutsCard(
     onOpenImport: () -> Unit,
     onOpenCustomers: () -> Unit,
     syncBeforeLogout: suspend () -> Boolean,
+    syncErrorDetail: () -> String?,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -109,10 +111,16 @@ fun ProfileShortcutsCard(
             onDismissRequest = { stage = LogoutStage.IDLE },
             title = { Text("Couldn't back up to the cloud") },
             text = {
-                Text(
-                    "If you log out now, anything not yet synced will be permanently deleted from this device. " +
-                        "Check your connection and try again, or log out anyway."
-                )
+                Column {
+                    Text(
+                        "If you log out now, anything not yet synced will be permanently deleted from this device. " +
+                            "Check your connection and try again, or log out anyway."
+                    )
+                    syncErrorDetail()?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.error)
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
