@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Amacezing" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF050B17</item>
+        <item name="android:windowSplashScreenBackground">#FF050B17</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#FF000000</item>
+    </style>
+</resources>
