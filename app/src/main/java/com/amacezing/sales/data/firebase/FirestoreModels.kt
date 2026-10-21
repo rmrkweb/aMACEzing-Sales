@@ -2,6 +2,7 @@ package com.amacezing.sales.data.firebase
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.IgnoreExtraProperties
+import com.google.firebase.firestore.PropertyName
 import com.google.firebase.firestore.ServerTimestamp
 
 @IgnoreExtraProperties
@@ -32,7 +33,8 @@ data class FirestoreProduct(
     val businessType: String = "ENGRAVING",
     val sellingPrice: Double = 0.0,
     val unitCost: Double = 0.0,
-    val isActive: Boolean = true,
+    // Kotlin "isXxx" properties are mapped to "xxx" by Firestore unless named explicitly.
+    @get:PropertyName("isActive") @set:PropertyName("isActive") var isActive: Boolean = true,
     @ServerTimestamp val createdAt: Timestamp? = null
 )
 
@@ -45,6 +47,25 @@ data class FirestoreCustomer(
     val email: String = "",
     val notes: String = "",
     @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class FirestoreLineItem(
+    val productId: Long = 0L,
+    val productName: String = "",
+    val quantity: Int = 0,
+    val unitSellingPrice: Double = 0.0,
+    val unitCost: Double = 0.0,
+    val lineSubtotal: Double = 0.0
+)
+
+@IgnoreExtraProperties
+data class FirestorePayment(
+    val amount: Double = 0.0,
+    val paymentDateEpochMillis: Long = 0L,
+    val paymentMethod: String = "Cash",
+    val referenceNumber: String = "",
+    val notes: String = ""
 )
 
 @IgnoreExtraProperties
@@ -68,6 +89,8 @@ data class FirestoreTransaction(
     val paymentNotes: String = "",
     val remarks: String = "",
     val lineItemsSummary: String = "",
+    val lineItems: List<FirestoreLineItem> = emptyList(),
+    val payments: List<FirestorePayment> = emptyList(),
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
@@ -109,6 +132,8 @@ data class FirestoreBusinessProfile(
     val receiptFooter: String = "",
     val showLogoOnDocuments: Boolean = true,
     val showContactOnDocuments: Boolean = true,
+    /** Small PNG copy of the logo so it can be restored on another device / after logout. */
+    val logoBase64: String = "",
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
 

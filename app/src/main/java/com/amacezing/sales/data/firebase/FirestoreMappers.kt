@@ -7,7 +7,9 @@ import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentStatus
 import com.amacezing.sales.model.Product
+import com.amacezing.sales.model.PaymentRecord
 import com.amacezing.sales.model.SalesTransaction
+import com.amacezing.sales.model.TransactionLineItem
 import java.util.UUID
 
 /**
@@ -21,7 +23,7 @@ object FirestoreMappers {
         return FirestoreProduct(
             id = id.toString(),
             userId = userId,
-            name = name.trim(),
+            name = name.trim().ifEmpty { "Unnamed Product" },
             businessType = businessType.name,
             sellingPrice = sellingPrice.coerceAtLeast(0.0),
             unitCost = unitCost.coerceAtLeast(0.0),
@@ -51,7 +53,7 @@ object FirestoreMappers {
         return FirestoreCustomer(
             id = id.toString(),
             userId = userId,
-            name = name.trim(),
+            name = name.trim().ifEmpty { "Walk-in Customer" },
             phone = phone.trim(),
             email = email.trim(),
             notes = notes.trim()
@@ -71,13 +73,18 @@ object FirestoreMappers {
 
     // --- Transaction Mapping & Parsing ---
 
-    fun SalesTransaction.toFirestore(userId: String, summary: String = ""): FirestoreTransaction {
+    fun SalesTransaction.toFirestore(
+        userId: String,
+        summary: String = "",
+        lineItems: List<TransactionLineItem> = emptyList(),
+        payments: List<PaymentRecord> = emptyList()
+    ): FirestoreTransaction {
         return FirestoreTransaction(
             id = id.ifBlank { UUID.randomUUID().toString() },
             userId = userId,
-            orderNumber = orderNumber.trim(),
+            orderNumber = orderNumber.trim().ifEmpty { id.ifBlank { "UNKNOWN-ORDER" } },
             businessType = businessType.name,
-            customerName = customerName.trim(),
+            customerName = customerName.trim().ifEmpty { "Walk-in Customer" },
             orderDateEpochMillis = if (orderDateEpochMillis > 0L) orderDateEpochMillis else System.currentTimeMillis(),
             discountType = discountType.name,
             discountPercentage = discountPercentage.coerceIn(0.0, 100.0),
@@ -91,9 +98,53 @@ object FirestoreMappers {
             outstandingBalance = outstandingBalance.coerceAtLeast(0.0),
             paymentNotes = paymentNotes.trim(),
             remarks = remarks.trim(),
-            lineItemsSummary = summary.trim()
+            lineItemsSummary = summary.trim(),
+            lineItems = lineItems.map {
+                FirestoreLineItem(
+                    productId = it.productId,
+                    productName = it.productName,
+                    quantity = it.quantity,
+                    unitSellingPrice = it.unitSellingPrice,
+                    unitCost = it.unitCost,
+                    lineSubtotal = it.lineSubtotal
+                )
+            },
+            payments = payments.map {
+                FirestorePayment(
+                    amount = it.amount,
+                    paymentDateEpochMillis = it.paymentDateEpochMillis,
+                    paymentMethod = it.paymentMethod,
+                    referenceNumber = it.referenceNumber,
+                    notes = it.notes
+                )
+            }
         )
     }
+
+    fun FirestoreTransaction.toRoomLineItems(): List<TransactionLineItem> =
+        lineItems.filter { it.quantity > 0 }.map {
+            TransactionLineItem(
+                transactionId = id.trim(),
+                productId = it.productId,
+                productName = it.productName,
+                quantity = it.quantity,
+                unitSellingPrice = it.unitSellingPrice,
+                unitCost = it.unitCost,
+                lineSubtotal = it.lineSubtotal
+            )
+        }
+
+    fun FirestoreTransaction.toRoomPayments(): List<PaymentRecord> =
+        payments.filter { it.amount > 0.0 }.map {
+            PaymentRecord(
+                transactionId = id.trim(),
+                amount = it.amount,
+                paymentDateEpochMillis = if (it.paymentDateEpochMillis > 0L) it.paymentDateEpochMillis else System.currentTimeMillis(),
+                paymentMethod = it.paymentMethod,
+                referenceNumber = it.referenceNumber,
+                notes = it.notes
+            )
+        }
 
     fun FirestoreTransaction.toRoomTransaction(customerId: Long? = null): SalesTransaction {
         val safeBusinessType = parseBusinessType(businessType)
