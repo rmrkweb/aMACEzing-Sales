@@ -15,6 +15,9 @@ interface ProductDao {
     @Query("SELECT COUNT(*) FROM products")
     suspend fun countProducts(): Int
 
+    @Query("SELECT * FROM products")
+    suspend fun getAllProductsSnapshot(): List<Product>
+
     @Query("SELECT * FROM products ORDER BY name ASC")
     fun getAllProducts(): Flow<List<Product>>
 

@@ -51,6 +51,9 @@ interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLineItems(items: List<TransactionLineItem>)
 
+    @Query("UPDATE line_items SET productId = :keepId WHERE productId = :duplicateId")
+    suspend fun repointLineItemProduct(duplicateId: Long, keepId: Long)
+
     @Query("DELETE FROM line_items WHERE transactionId = :transactionId")
     suspend fun deleteLineItemsByTransactionId(transactionId: String)
 

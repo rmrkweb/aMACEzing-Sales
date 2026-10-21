@@ -287,13 +287,53 @@ class SalesRepository(private val database: AppDatabase) {
         transactionDao.countTransactions() == 0 && customerDao.countCustomers() == 0
     }
 
+    suspend fun getProductsSnapshot(): List<Product> = withContext(Dispatchers.IO) {
+        productDao.getAllProductsSnapshot()
+    }
+
+    suspend fun getBusinessProfileSnapshot(): com.amacezing.sales.model.BusinessProfile? = withContext(Dispatchers.IO) {
+        businessProfileDao.getProfileSnapshot()
+    }
+
+    /** Full snapshot (transaction + line items + payments) used when pushing one order to the cloud. */
+    suspend fun getTransactionDetailsSnapshot(id: String): TransactionWithDetails? = withContext(Dispatchers.IO) {
+        val tx = transactionDao.getTransactionById(id) ?: return@withContext null
+        TransactionWithDetails(
+            transaction = tx,
+            lineItems = transactionDao.getLineItemsByTransactionId(id),
+            payments = transactionDao.getPaymentsListForTransaction(id)
+        )
+    }
+
+    /**
+     * Merge products that share the same name + business (case-insensitive). The lowest id survives,
+     * order lines are re-pointed to it. Returns the removed product ids (so the cloud copies can be deleted).
+     */
+    suspend fun dedupeProducts(): List<Long> = withContext(Dispatchers.IO) {
+        val removed = mutableListOf<Long>()
+        productDao.getAllProductsSnapshot()
+            .groupBy { it.businessType to it.name.trim().lowercase() }
+            .values
+            .filter { it.size > 1 }
+            .forEach { group ->
+                val keep = group.minByOrNull { it.id } ?: return@forEach
+                group.filter { it.id != keep.id }.forEach { dup ->
+                    transactionDao.repointLineItemProduct(dup.id, keep.id)
+                    productDao.deleteProduct(dup)
+                    removed += dup.id
+                }
+            }
+        removed
+    }
+
     /** Merge cloud records into Room without deleting local rows. Used only for first-install recovery. */
     suspend fun restoreCloudRecords(
         products: List<com.amacezing.sales.data.firebase.FirestoreProduct>,
         customers: List<com.amacezing.sales.data.firebase.FirestoreCustomer>,
         transactions: List<com.amacezing.sales.data.firebase.FirestoreTransaction>,
         cloudSettings: com.amacezing.sales.data.firebase.FirestoreSettings?,
-        cloudProfile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile? = null
+        cloudProfile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile? = null,
+        restoredLogoPath: String? = null
     ) = withContext(Dispatchers.IO) {
         val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
         val restoredCustomers = customers.map { mapper.run { it.toRoomCustomer() } }
@@ -302,19 +342,70 @@ class SalesRepository(private val database: AppDatabase) {
         val restoredProducts = products.map { mapper.run { it.toRoomProduct() } }
         if (restoredProducts.isNotEmpty()) productDao.insertProducts(restoredProducts)
 
+        val productsByKey = (productDao.getAllProductsSnapshot() + restoredProducts)
+            .associateBy { it.businessType to it.name.trim().lowercase() }
+
         val customerIdByName = restoredCustomers.associate { it.name.trim().lowercase() to it.id }
-        val restoredTransactions = transactions.map { remote ->
+        val roomTransactions = transactions.map { remote ->
             val customerId = customerIdByName[remote.customerName.trim().lowercase()]
             mapper.run { remote.toRoomTransaction(customerId) }
         }
-        if (restoredTransactions.isNotEmpty()) transactionDao.insertTransactions(restoredTransactions)
+        if (roomTransactions.isNotEmpty()) transactionDao.insertTransactions(roomTransactions)
+
+        // Order lines and payments live inside the cloud transaction document.
+        transactions.zip(roomTransactions).forEach { (remote, room) ->
+            val lines = mapper.run { remote.toRoomLineItems() }
+                .ifEmpty { linesFromSummary(remote, room, productsByKey) }
+            if (lines.isNotEmpty()) {
+                transactionDao.deleteLineItemsByTransactionId(room.id)
+                transactionDao.insertLineItems(lines.map { it.copy(transactionId = room.id) })
+            }
+            val pays = mapper.run { remote.toRoomPayments() }
+            if (pays.isNotEmpty()) {
+                transactionDao.deletePaymentsByTransactionId(room.id)
+                transactionDao.insertPayments(pays.map { it.copy(transactionId = room.id) })
+            }
+        }
 
         if (cloudSettings != null) {
             settingsDao.insertOrUpdate(mapper.run { cloudSettings.toRoomSettings(id = 1) })
         }
 
         if (cloudProfile != null) {
-            businessProfileDao.insertOrUpdate(mapper.run { cloudProfile.toRoomBusinessProfile() })
+            businessProfileDao.insertOrUpdate(
+                mapper.run { cloudProfile.toRoomBusinessProfile() }.copy(logoUri = restoredLogoPath ?: "")
+            )
+        }
+    }
+
+    /**
+     * Older cloud documents only stored a text summary ("Product (x2); Other (x1)").
+     * Rebuild approximate order lines from it so quantities are not lost.
+     */
+    private fun linesFromSummary(
+        remote: com.amacezing.sales.data.firebase.FirestoreTransaction,
+        room: SalesTransaction,
+        productsByKey: Map<Pair<BusinessType, String>, Product>
+    ): List<TransactionLineItem> {
+        val regex = Regex("^\\s*(.+?)\\s*\\(x(\\d+)\\)\\s*$")
+        val parsed = remote.lineItemsSummary.split(";").mapNotNull { part ->
+            regex.matchEntire(part)?.let { it.groupValues[1] to it.groupValues[2].toInt() }
+        }
+        if (parsed.isEmpty()) return emptyList()
+        val totalQty = parsed.sumOf { it.second }.coerceAtLeast(1)
+        return parsed.map { (name, qty) ->
+            val product = productsByKey[room.businessType to name.trim().lowercase()]
+            val unitPrice = product?.sellingPrice ?: (room.grossSales / totalQty)
+            val unitCost = product?.unitCost ?: (room.totalProductCost / totalQty)
+            TransactionLineItem(
+                transactionId = room.id,
+                productId = product?.id ?: 0L,
+                productName = name,
+                quantity = qty,
+                unitSellingPrice = SalesCalculator.roundTo2Decimals(unitPrice),
+                unitCost = SalesCalculator.roundTo2Decimals(unitCost),
+                lineSubtotal = SalesCalculator.roundTo2Decimals(qty * unitPrice)
+            )
         }
     }
 
