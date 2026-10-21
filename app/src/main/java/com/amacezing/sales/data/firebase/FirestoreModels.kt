@@ -106,7 +106,7 @@ data class FirestoreSettings(
     val sintraDefaultMarginPercent: Double = 58.3333,
     val sintraUseCostCalculation: Boolean = false,
     val currencySymbol: String = "₱",
-    val isProfitMasked: Boolean = false,
+    val isProfitMasked: Boolean = true,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
 
