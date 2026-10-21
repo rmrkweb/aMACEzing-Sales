@@ -291,10 +291,6 @@ class SalesRepository(private val database: AppDatabase) {
         productDao.getAllProductsSnapshot()
     }
 
-    suspend fun getBusinessProfileSnapshot(): com.amacezing.sales.model.BusinessProfile? = withContext(Dispatchers.IO) {
-        businessProfileDao.getProfileSnapshot()
-    }
-
     /** Full snapshot (transaction + line items + payments) used when pushing one order to the cloud. */
     suspend fun getTransactionDetailsSnapshot(id: String): TransactionWithDetails? = withContext(Dispatchers.IO) {
         val tx = transactionDao.getTransactionById(id) ?: return@withContext null
