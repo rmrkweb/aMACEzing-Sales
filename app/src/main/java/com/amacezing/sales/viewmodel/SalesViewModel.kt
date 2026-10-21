@@ -844,7 +844,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             firestoreRepo.saveSettings(mapper.run { settings.value.toFirestore(uid) })
 
             step = "users/$uid/business_profile"
-            val currentProfile = repository.getBusinessProfileSnapshot() ?: businessProfile.value
+            val currentProfile = repository.getBusinessProfileSnapshot()
             firestoreRepo.saveBusinessProfile(profileForCloud(currentProfile, uid))
 
             _syncStatus.value = SyncStatus.SYNCED
