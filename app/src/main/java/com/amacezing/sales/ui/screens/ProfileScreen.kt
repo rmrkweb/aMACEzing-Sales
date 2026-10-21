@@ -549,6 +549,11 @@ fun ProfileScreen(
                 }
             }
 
+            // App lock (biometric) toggle
+            item {
+                com.amacezing.sales.ui.components.BiometricLockCard()
+            }
+
             // 2. Business Branding Card
             item {
                 Card(
