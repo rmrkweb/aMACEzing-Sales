@@ -7,6 +7,8 @@ googleServices = "4.5.0"
 composeBom = "2024.09.00"
 firebaseBom = "34.17.0"
 activity = "1.10.1"
+biometric = "1.1.0"
+fragment = "1.8.5"
 accompanist = "0.36.0"
 camera = "1.5.0"
 coreKtx = "1.18.0"
@@ -34,6 +36,8 @@ androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", versi
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camera" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camera" }
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camera" }
