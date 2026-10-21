@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -297,57 +298,78 @@ fun TransactionDetailDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-                // Actions Row
-                Row(
+                // Actions
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.testTag("delete_order_action_button")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete Order", tint = StatusCancelled)
-                    }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = onGenerateReceipt,
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            modifier = Modifier.testTag("generate_receipt_pdf_button")
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("generate_receipt_pdf_button")
                         ) {
                             Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Receipt")
+                            Text("Receipt", maxLines = 1)
                         }
 
                         OutlinedButton(
                             onClick = onDuplicate,
-                            modifier = Modifier.testTag("duplicate_order_button")
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("duplicate_order_button")
                         ) {
                             Icon(Icons.Default.ContentCopy, contentDescription = "Duplicate", modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Duplicate")
+                            Text("Duplicate", maxLines = 1)
                         }
+                    }
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         if (tx.outstandingBalance > 0.0 && tx.paymentStatus != PaymentStatus.CANCELLED) {
                             Button(
                                 onClick = onRecordPayment,
-                                modifier = Modifier.testTag("record_payment_action_button")
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("record_payment_action_button")
                             ) {
                                 Icon(Icons.Default.Payment, contentDescription = "Pay", modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Pay")
+                                Text("Pay", maxLines = 1)
                             }
                         }
 
                         OutlinedButton(
                             onClick = onEdit,
-                            modifier = Modifier.testTag("edit_order_action_button")
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("edit_order_action_button")
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Edit")
+                            Text("Edit", maxLines = 1)
+                        }
+
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.testTag("delete_order_action_button")
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Order", tint = StatusCancelled)
                         }
                     }
                 }
