@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Discount
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Payments
@@ -192,11 +193,12 @@ fun DashboardScreen(
                 }
             }
 
-            // Secondary Metrics
-            item {
+            // Secondary Metrics (2 columns)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricCard(
                         title = "Gross Sales",
@@ -211,16 +213,32 @@ fun DashboardScreen(
                         iconColor = SecondaryAmber,
                         modifier = Modifier.weight(1f)
                     )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     MetricCard(
                         title = "Avg Order",
                         value = Formatters.formatCurrency(metrics.averageOrderValue),
                         icon = Icons.Default.Receipt,
                         modifier = Modifier.weight(1f)
                     )
+                    MetricCard(
+                        title = "Top Customer",
+                        value = metrics.topCustomerName.ifEmpty { "—" },
+                        icon = Icons.Default.EmojiEvents,
+                        iconColor = SecondaryAmber,
+                        subtitle = if (metrics.topCustomerName.isEmpty()) null
+                        else Formatters.formatCurrency(metrics.topCustomerSales),
+                        subtitleColor = SecondaryAmber,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
+        }
 
-            // Visual Charts
+        // Visual Charts
             item {
                 SalesAndProfitTrendChart(data = trendData, isProfitMasked = settings.isProfitMasked)
             }
