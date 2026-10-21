@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark navy window so there is no white flash before the Compose splash appears. -->
+    <style name="Theme.Amacezing" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF050B17</item>
+    </style>
+</resources>
