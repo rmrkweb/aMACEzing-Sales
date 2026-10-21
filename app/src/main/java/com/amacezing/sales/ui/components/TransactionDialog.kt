@@ -71,13 +71,24 @@ import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.util.LineItemInput
 import com.amacezing.sales.util.SalesCalculator
 
-data class LineItemFormState(
-    var productId: Long,
-    var productName: String,
-    var quantityText: String,
-    var unitPriceText: String,
-    var unitCost: Double
-)
+/**
+ * Form state for one order line. Each field is Compose state so edits (typing in Qty / Unit Price,
+ * picking a product) trigger recomposition. With plain properties the text fields never refreshed,
+ * which made them look read-only.
+ */
+class LineItemFormState(
+    productId: Long,
+    productName: String,
+    quantityText: String,
+    unitPriceText: String,
+    unitCost: Double
+) {
+    var productId by mutableLongStateOf(productId)
+    var productName by mutableStateOf(productName)
+    var quantityText by mutableStateOf(quantityText)
+    var unitPriceText by mutableStateOf(unitPriceText)
+    var unitCost by mutableDoubleStateOf(unitCost)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -398,16 +409,25 @@ fun TransactionDialog(
                             )
                             TextButton(
                                 onClick = {
-                                    val defProd = filteredProducts.firstOrNull()
-                                    formLineItems.add(
-                                        LineItemFormState(
-                                            productId = defProd?.id ?: 0L,
-                                            productName = defProd?.name ?: "Custom Product",
-                                            quantityText = "1",
-                                            unitPriceText = (defProd?.sellingPrice ?: 50.0).toString(),
-                                            unitCost = defProd?.unitCost ?: 25.0
+                                    // Prefer a product that isn't on the order yet.
+                                    val usedIds = formLineItems.map { it.productId }.toSet()
+                                    val defProd = filteredProducts.firstOrNull { it.id !in usedIds }
+                                        ?: filteredProducts.firstOrNull()
+                                    val existing = defProd?.let { dp -> formLineItems.firstOrNull { it.productId == dp.id } }
+                                    if (existing != null) {
+                                        // Every catalog product is already on the order: add to its quantity.
+                                        existing.quantityText = ((existing.quantityText.toIntOrNull() ?: 0) + 1).toString()
+                                    } else {
+                                        formLineItems.add(
+                                            LineItemFormState(
+                                                productId = defProd?.id ?: 0L,
+                                                productName = defProd?.name ?: "Custom Product",
+                                                quantityText = "1",
+                                                unitPriceText = (defProd?.sellingPrice ?: 50.0).toString(),
+                                                unitCost = defProd?.unitCost ?: 25.0
+                                            )
                                         )
-                                    )
+                                    }
                                 },
                                 modifier = Modifier.testTag("add_product_line_button")
                             ) {
@@ -464,11 +484,23 @@ fun TransactionDialog(
                                                         }
                                                     },
                                                     onClick = {
-                                                        line.productId = p.id
-                                                        line.productName = p.name
-                                                        line.unitPriceText = p.sellingPrice.toString()
-                                                        line.unitCost = p.unitCost
                                                         productDropdownExpanded = false
+                                                        // Same product (at the same price) already on the order? Merge into it.
+                                                        val dup = formLineItems.firstOrNull {
+                                                            it !== line && it.productId == p.id &&
+                                                                it.unitPriceText == p.sellingPrice.toString()
+                                                        }
+                                                        if (dup != null) {
+                                                            val total = (dup.quantityText.toIntOrNull() ?: 0) +
+                                                                (line.quantityText.toIntOrNull() ?: 0)
+                                                            dup.quantityText = total.toString()
+                                                            formLineItems.remove(line)
+                                                        } else {
+                                                            line.productId = p.id
+                                                            line.productName = p.name
+                                                            line.unitPriceText = p.sellingPrice.toString()
+                                                            line.unitCost = p.unitCost
+                                                        }
                                                     }
                                                 )
                                             }
