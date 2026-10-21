@@ -95,6 +95,25 @@ class FirestoreTransactionRepository(
                 "paymentNotes" to tx.paymentNotes,
                 "remarks" to tx.remarks,
                 "lineItemsSummary" to tx.lineItemsSummary,
+                "lineItems" to tx.lineItems.map {
+                    mapOf(
+                        "productId" to it.productId,
+                        "productName" to it.productName,
+                        "quantity" to it.quantity,
+                        "unitSellingPrice" to it.unitSellingPrice,
+                        "unitCost" to it.unitCost,
+                        "lineSubtotal" to it.lineSubtotal
+                    )
+                },
+                "payments" to tx.payments.map {
+                    mapOf(
+                        "amount" to it.amount,
+                        "paymentDateEpochMillis" to it.paymentDateEpochMillis,
+                        "paymentMethod" to it.paymentMethod,
+                        "referenceNumber" to it.referenceNumber,
+                        "notes" to it.notes
+                    )
+                },
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp()
             )

@@ -33,7 +33,7 @@ class FirestoreBusinessProfileRepository(
         val uid = requireUserId()
         val path = "users/$uid/business_profile/active"
         emitAll(
-            db.collection("users").document(uid).collection("business_profile").document("active")
+            db.collection("users").document(uid).collection("business_profile").document("active_profile")
                 .snapshots()
                 .map { snapshot ->
                     if (snapshot.exists()) snapshot.toObject(FirestoreBusinessProfile::class.java) else null
@@ -49,7 +49,7 @@ class FirestoreBusinessProfileRepository(
         val uid = requireUserId()
         val path = "users/$uid/business_profile/active"
         return try {
-            val doc = db.collection("users").document(uid).collection("business_profile").document("active").get().await()
+            val doc = db.collection("users").document(uid).collection("business_profile").document("active_profile").get().await()
             if (doc.exists()) doc.toObject(FirestoreBusinessProfile::class.java) else null
         } catch (e: CancellationException) {
             throw e
@@ -79,6 +79,7 @@ class FirestoreBusinessProfileRepository(
                 "tin" to profile.tin,
                 "documentFooter" to profile.documentFooter,
                 "logoUri" to profile.logoUri,
+                "logoBase64" to profile.logoBase64,
                 "currency" to profile.currency,
                 "quotationValidityDays" to profile.quotationValidityDays,
                 "paymentInstructions" to profile.paymentInstructions,
