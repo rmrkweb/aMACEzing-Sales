@@ -1,11 +1,11 @@
 package com.amacezing.sales
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.fragment.app.FragmentActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -75,7 +75,12 @@ import com.amacezing.sales.data.firebase.FirestoreSalesRepository
 import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.Product
 import com.amacezing.sales.model.SalesTransaction
+import com.amacezing.sales.security.AppLock
+import com.amacezing.sales.security.BiometricAuth
+import com.amacezing.sales.security.SecurityPrefs
+import com.amacezing.sales.security.findFragmentActivity
 import com.amacezing.sales.ui.auth.AuthScreen
+import com.amacezing.sales.ui.components.AppSplashScreen
 import com.amacezing.sales.ui.auth.signOut
 import com.amacezing.sales.ui.components.ConfirmDeleteDialog
 import com.amacezing.sales.ui.components.CustomerDialog
@@ -101,19 +106,30 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
 
     private val viewModel: SalesViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         com.amacezing.sales.util.FirebaseInitHelper.initFirebaseIfEmpty(this)
         super.onCreate(savedInstanceState)
+        com.amacezing.sales.security.AppLock.initOnce(this)
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
                 AppRoot(viewModel = viewModel)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        com.amacezing.sales.security.AppLock.onActivityStarted(this)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        com.amacezing.sales.security.AppLock.onActivityStopped()
     }
 }
 
@@ -134,7 +150,50 @@ fun AppRoot(viewModel: SalesViewModel) {
         }
     }
 
-    if (currentUser == null) {
+    // --- Splash + biometric app lock ---
+    var splashDone by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!splashDone) {
+            kotlinx.coroutines.delay(1000)
+            splashDone = true
+        }
+    }
+
+    val needsUnlock = com.amacezing.sales.security.AppLock.isLocked && currentUser != null
+    var authError by remember { mutableStateOf<String?>(null) }
+    var unlockAttempt by remember { mutableStateOf(0) }
+
+    LaunchedEffect(needsUnlock, splashDone, unlockAttempt) {
+        if (needsUnlock && splashDone) {
+            val activity = context.findFragmentActivity()
+            if (activity == null || !BiometricAuth.canAuthenticate(context)) {
+                // Never lock the user out if the device lock was removed.
+                SecurityPrefs.setBiometricLockEnabled(context, false)
+                AppLock.unlock()
+            } else {
+                authError = null
+                BiometricAuth.authenticate(
+                    activity = activity,
+                    title = "Unlock aMACEzing Sales",
+                    subtitle = "Confirm it's you to continue",
+                    onSuccess = { AppLock.unlock() },
+                    onFailure = { authError = it }
+                )
+            }
+        }
+    }
+
+    if (!splashDone || needsUnlock) {
+        AppSplashScreen(
+            statusText = when {
+                needsUnlock && splashDone -> authError ?: "Authenticate to continue"
+                else -> "Loading..."
+            },
+            showSpinner = !(needsUnlock && splashDone && authError != null),
+            actionLabel = if (needsUnlock && splashDone && authError != null) "Unlock" else null,
+            onAction = { unlockAttempt++ }
+        )
+    } else if (currentUser == null) {
         AuthScreen(onAuthSuccess = { currentUser = Firebase.auth.currentUser })
     } else {
         com.amacezing.sales.update.AutoUpdatePrompt()
