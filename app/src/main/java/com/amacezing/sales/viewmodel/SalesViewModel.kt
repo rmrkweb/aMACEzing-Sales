@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -55,7 +56,9 @@ data class DashboardMetrics(
     val outstandingReceivables: Double = 0.0,
     val ordersCount: Int = 0,
     val averageOrderValue: Double = 0.0,
-    val totalProductsSold: Int = 0
+    val totalProductsSold: Int = 0,
+    val topCustomerName: String = "",
+    val topCustomerSales: Double = 0.0
 )
 
 data class ChartBarData(
@@ -371,6 +374,15 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         val avgOrderValue = if (ordersCount > 0) SalesCalculator.roundTo2Decimals(net / ordersCount) else 0.0
         val totalProductsSold = activeOrders.sumOf { it.totalItemsCount }
 
+        // Top customer by net sales (names compared case-insensitively)
+        val topCustomer = activeOrders
+            .groupBy { it.transaction.customerName.trim().lowercase() }
+            .filterKeys { it.isNotEmpty() }
+            .map { (_, orders) ->
+                orders.first().transaction.customerName.trim() to orders.sumOf { it.transaction.netSales }
+            }
+            .maxByOrNull { it.second }
+
         DashboardMetrics(
             grossSales = gross,
             totalDiscounts = discounts,
@@ -381,7 +393,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             outstandingReceivables = receivables,
             ordersCount = ordersCount,
             averageOrderValue = avgOrderValue,
-            totalProductsSold = totalProductsSold
+            totalProductsSold = totalProductsSold,
+            topCustomerName = topCustomer?.first.orEmpty(),
+            topCustomerSales = SalesCalculator.roundTo2Decimals(topCustomer?.second ?: 0.0)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardMetrics())
 
@@ -450,19 +464,34 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Pair(DashboardMetrics(), DashboardMetrics()))
 
     // Monthly Trend Chart Data
-    val monthlyTrendData: StateFlow<List<ChartBarData>> = filteredTransactions.combine(MutableStateFlow(Unit)) { list, _ ->
+    val monthlyTrendData: StateFlow<List<ChartBarData>> = filteredTransactions.map { list ->
         val active = list.filter { it.transaction.paymentStatus != PaymentStatus.CANCELLED }
-        val grouped = active.groupBy { Formatters.formatEpochMillisToMonthYear(it.transaction.orderDateEpochMillis) }
+        if (active.isEmpty()) return@map emptyList<ChartBarData>()
 
-        grouped.map { (monthStr, items) ->
-            val sales = items.sumOf { it.transaction.netSales }
-            val profit = items.sumOf { it.transaction.estimatedProfit }
+        // Group by calendar month (year * 12 + month) so months sort chronologically.
+        // (The list arrives newest-first, so grouping by label and taking the last 6 used to show
+        // the six OLDEST months in reverse order.)
+        val manila = java.util.TimeZone.getTimeZone("Asia/Manila")
+        val cal = java.util.Calendar.getInstance(manila)
+        fun monthKey(millis: Long): Int {
+            cal.timeInMillis = millis
+            return cal.get(java.util.Calendar.YEAR) * 12 + cal.get(java.util.Calendar.MONTH)
+        }
+
+        val byMonth = active.groupBy { monthKey(it.transaction.orderDateEpochMillis) }
+        val lastKey = byMonth.keys.max()
+        val firstKey = maxOf(byMonth.keys.min(), lastKey - 5)   // latest 6 months, gaps included
+
+        (firstKey..lastKey).map { key ->
+            val items = byMonth[key].orEmpty()
+            cal.clear()
+            cal.set(key / 12, key % 12, 1, 12, 0, 0)
             ChartBarData(
-                label = monthStr,
-                value = SalesCalculator.roundTo2Decimals(sales),
-                secondaryValue = SalesCalculator.roundTo2Decimals(profit)
+                label = Formatters.formatEpochMillisToMonthYear(cal.timeInMillis),
+                value = SalesCalculator.roundTo2Decimals(items.sumOf { it.transaction.netSales }),
+                secondaryValue = SalesCalculator.roundTo2Decimals(items.sumOf { it.transaction.estimatedProfit })
             )
-        }.takeLast(6)
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Actions
