@@ -557,6 +557,7 @@ fun ProfileScreen(
                     onOpenImport = { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.IMPORT_EXPORT) },
                     onOpenCustomers = { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.CUSTOMERS) },
                     syncBeforeLogout = { viewModel.syncBeforeLogout() },
+                    syncErrorDetail = { viewModel.lastSyncError.value },
                     onLogout = onSignOut
                 )
             }
