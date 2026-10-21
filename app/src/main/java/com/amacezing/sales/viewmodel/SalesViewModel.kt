@@ -797,7 +797,11 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
     // Bulk Synchronize all data to Cloud Firestore
     fun syncAllToCloud() {
-        viewModelScope.launch {
+        viewModelScope.launch { performCloudSync() }
+    }
+
+    /** Full cloud sync. Returns true on success. [silent] suppresses snackbars (used by the logout flow). */
+    suspend fun performCloudSync(silent: Boolean = false): Boolean {
             var step = "start"
             try {
                 _syncStatus.value = SyncStatus.SYNCING
@@ -849,12 +853,41 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 firestoreRepo.saveBusinessProfile(com.amacezing.sales.data.firebase.FirestoreMappers.run { businessProfile.value.toFirestore(uid) })
 
                 _syncStatus.value = SyncStatus.SYNCED
-                snackbarMessage.value = "All sales records and business branding successfully synchronized with Cloud Firestore!"
+                if (!silent) snackbarMessage.value = "All sales records and business branding successfully synchronized with Cloud Firestore!"
+                return true
             } catch (e: Exception) {
                 _syncStatus.value = SyncStatus.SYNC_ERROR
-                snackbarMessage.value = "Cloud sync failed at $step: ${e.localizedMessage}"
+                if (!silent) snackbarMessage.value = "Cloud sync failed at $step: ${e.localizedMessage}"
+                return false
             }
-        }
+    }
+
+    /** Used before logout: sync everything, but never hang forever when offline. */
+    suspend fun syncBeforeLogout(): Boolean =
+        kotlinx.coroutines.withTimeoutOrNull(20_000L) { performCloudSync(silent = true) } ?: false
+
+    /**
+     * Logout cleanup: wipes all local data so the device is back to a fresh install
+     * (cloud data is untouched and is restored on the next sign-in).
+     */
+    suspend fun wipeLocalData() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val ctx = getApplication<Application>()
+
+        // Room: remove every row, then re-seed defaults exactly like a first install.
+        database.clearAllTables()
+        AppDatabase.populateInitialData(database)
+
+        // Branding logo copy, cached PDFs / downloaded updates.
+        java.io.File(ctx.filesDir, "branding").deleteRecursively()
+        ctx.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
+
+        // Device-local security setting.
+        com.amacezing.sales.security.SecurityPrefs.setBiometricLockEnabled(ctx, false)
+        com.amacezing.sales.security.AppLock.unlock()
+
+        // Back to the dashboard for the next sign-in.
+        _screenStack.value = listOf(Screen.DASHBOARD)
+        _currentScreen.value = Screen.DASHBOARD
     }
 
     // Excel Migration
