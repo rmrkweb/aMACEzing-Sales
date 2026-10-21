@@ -101,7 +101,8 @@ import java.io.FileOutputStream
 fun ProfileScreen(
     viewModel: SalesViewModel,
     currentUser: FirebaseUser?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSignOut: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -547,6 +548,17 @@ fun ProfileScreen(
                         )
                     }
                 }
+            }
+
+            // Shortcuts to Reports / Data Import / Customers
+            item {
+                com.amacezing.sales.ui.components.ProfileShortcutsCard(
+                    onOpenReports = { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.REPORTS) },
+                    onOpenImport = { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.IMPORT_EXPORT) },
+                    onOpenCustomers = { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.CUSTOMERS) },
+                    syncBeforeLogout = { viewModel.syncBeforeLogout() },
+                    onLogout = onSignOut
+                )
             }
 
             // App lock (biometric) toggle
