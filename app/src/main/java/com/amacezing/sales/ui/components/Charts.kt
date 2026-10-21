@@ -185,17 +185,16 @@ fun SalesAndProfitTrendChart(
                 }
 
                 // Month labels
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
+                Row(modifier = Modifier.fillMaxWidth()) {
                     data.forEach { item ->
                         Text(
                             text = item.label,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            maxLines = 2,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
