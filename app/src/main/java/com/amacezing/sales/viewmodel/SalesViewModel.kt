@@ -193,12 +193,13 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         customers: List<com.amacezing.sales.data.firebase.FirestoreCustomer>,
         transactions: List<com.amacezing.sales.data.firebase.FirestoreTransaction>,
         settings: com.amacezing.sales.data.firebase.FirestoreSettings?,
-        profile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile?
+        profile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile?,
+        businesses: List<com.amacezing.sales.data.firebase.FirestoreBusiness> = emptyList()
     ) {
         val logoPath = profile?.logoBase64
             ?.takeIf { it.isNotBlank() }
             ?.let { com.amacezing.sales.util.LogoCodec.decodeBase64ToFile(getApplication(), it) }
-        repository.restoreCloudRecords(products, customers, transactions, settings, profile, logoPath)
+        repository.restoreCloudRecords(products, customers, transactions, settings, profile, logoPath, businesses)
         dedupeProductsEverywhere()
     }
 
@@ -241,6 +242,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 val remoteTransactions = firestoreRepo.getTransactions()
                 val remoteSettings = firestoreRepo.getSettings()
                 val remoteProfile = firestoreRepo.getBusinessProfile()
+                val remoteBusinesses = try { firestoreRepo.getBusinesses() } catch (_: Exception) { emptyList() }
 
                 // Do not mark this as restored unless Firestore actually returned data.
                 if (remoteProducts.isEmpty() && remoteCustomers.isEmpty() && remoteTransactions.isEmpty() && remoteSettings == null && remoteProfile == null) {
@@ -248,7 +250,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
+                restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile, remoteBusinesses)
                 _syncStatus.value = SyncStatus.SYNCED
                 snackbarMessage.value = "Cloud backup and business profile restored to this device."
             } catch (e: Exception) {
@@ -742,6 +744,59 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // Business actions
+    /** Result of validating a business form; null means valid. */
+    fun validateBusiness(
+        name: String,
+        prefix: String,
+        editingId: String?
+    ): String? {
+        val trimmedName = name.trim()
+        val cleanPrefix = prefix.trim().uppercase()
+        val others = businesses.value.filter { it.id != editingId }
+        return when {
+            trimmedName.isEmpty() -> "Enter a business name."
+            others.any { it.name.equals(trimmedName, ignoreCase = true) } -> "A business with this name already exists."
+            cleanPrefix.length !in 2..6 || !cleanPrefix.all { it.isLetterOrDigit() } ->
+                "Prefix must be 2 to 6 letters or digits."
+            others.any { it.orderPrefix.equals(cleanPrefix, ignoreCase = true) } ->
+                "This prefix is already used by another business."
+            else -> null
+        }
+    }
+
+    /** Builds a unique, stable id (e.g. "INVITATION_PRINTING") for a new business. */
+    fun newBusinessId(name: String): String {
+        val base = name.trim().uppercase()
+            .map { if (it.isLetterOrDigit()) it else '_' }
+            .joinToString("")
+            .replace(Regex("_+"), "_")
+            .trim('_')
+            .ifEmpty { "BUSINESS" }
+        val taken = businesses.value.map { it.id }.toSet()
+        if (base !in taken) return base
+        var n = 2
+        while ("${base}_$n" in taken) n++
+        return "${base}_$n"
+    }
+
+    fun saveBusiness(business: com.amacezing.sales.model.Business) {
+        viewModelScope.launch {
+            repository.saveBusiness(business)
+            try {
+                _syncStatus.value = SyncStatus.SYNCING
+                val uid = firestoreRepo.requireUserId()
+                firestoreRepo.saveBusiness(
+                    com.amacezing.sales.data.firebase.FirestoreMappers.run { business.toFirestore(uid) }
+                )
+                _syncStatus.value = SyncStatus.SYNCED
+            } catch (_: Exception) {
+                _syncStatus.value = SyncStatus.OFFLINE_SAVED
+            }
+            snackbarMessage.value = "${business.name} saved"
+        }
+    }
+
     // Product actions
     fun saveProduct(product: Product) {
         viewModelScope.launch {
@@ -863,8 +918,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 val remoteTransactions = firestoreRepo.getTransactions()
                 val remoteSettings = firestoreRepo.getSettings()
                 val remoteProfile = firestoreRepo.getBusinessProfile()
+                val remoteBusinesses = try { firestoreRepo.getBusinesses() } catch (_: Exception) { emptyList() }
                 if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteSettings != null || remoteProfile != null) {
-                    restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile)
+                    restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile, remoteBusinesses)
                 }
             }
 
@@ -878,6 +934,11 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             firestoreRepo.seedDefaultBusinessesIfEmpty()
 
             val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
+
+            // Businesses go first so every order/product they own has its business in the cloud.
+            repository.getBusinessesSnapshot().forEach { b ->
+                firestoreRepo.saveBusiness(mapper.run { b.toFirestore(uid) })
+            }
 
             step = "users/$uid/products"
             inParallel(repository.getProductsSnapshot()) { p ->

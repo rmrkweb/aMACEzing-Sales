@@ -267,6 +267,43 @@ object FirestoreMappers {
 
     // --- Resilient Enum Parsers with Fallbacks ---
 
+    /** Cloud document id is the lower-case business id, matching the documents seeded earlier. */
+    fun com.amacezing.sales.model.Business.toFirestore(userId: String): FirestoreBusiness =
+        FirestoreBusiness(
+            id = id.lowercase(),
+            userId = userId,
+            name = name,
+            type = id,
+            orderPrefix = orderPrefix,
+            colorHex = colorHex,
+            profitMethod = profitMethod.name,
+            marginPercent = marginPercent,
+            useUnitCostIfAvailable = useUnitCostIfAvailable,
+            isActive = isActive,
+            sortOrder = sortOrder
+        )
+
+    /** Older documents lack the newer fields; they fall back to the original defaults for that business. */
+    fun FirestoreBusiness.toRoomBusiness(fallbackSortOrder: Int): com.amacezing.sales.model.Business {
+        val businessId = parseBusinessType(type)
+        val default = com.amacezing.sales.model.Business.DEFAULTS.firstOrNull { it.id == businessId }
+        return com.amacezing.sales.model.Business(
+            id = businessId,
+            name = name.trim().ifEmpty { default?.name ?: com.amacezing.sales.model.Business.fallbackName(businessId) },
+            orderPrefix = orderPrefix.trim().uppercase().ifEmpty { default?.orderPrefix ?: "ORD" },
+            colorHex = colorHex ?: default?.colorHex ?: "#9AA6B2",
+            profitMethod = profitMethod?.let {
+                try { com.amacezing.sales.model.ProfitMethod.valueOf(it) } catch (_: Exception) { null }
+            } ?: default?.profitMethod ?: com.amacezing.sales.model.ProfitMethod.UNIT_COST,
+            marginPercent = (marginPercent ?: default?.marginPercent ?: 0.0).let {
+                if (it.isNaN() || it < 0.0) 0.0 else it.coerceAtMost(100.0)
+            },
+            useUnitCostIfAvailable = useUnitCostIfAvailable ?: default?.useUnitCostIfAvailable ?: false,
+            isActive = isActive ?: true,
+            sortOrder = sortOrder ?: default?.sortOrder ?: fallbackSortOrder
+        )
+    }
+
     /** Business ids are free-form now; normalise legacy spellings and keep unknown ids intact. */
     fun parseBusinessType(raw: String?): BusinessType {
         if (raw.isNullOrBlank()) return com.amacezing.sales.model.Business.ENGRAVING_ID

@@ -41,3 +41,35 @@ class BusinessModelTest {
         assertEquals("INVITATION_PRINTING", FirestoreMappers.parseBusinessType("Invitation Printing"))
     }
 }
+
+class BusinessCloudMappingTest {
+    private val mapper = FirestoreMappers
+
+    @Test
+    fun roundTripKeepsEveryField() {
+        val original = Business(
+            id = "INVITATION_PRINTING", name = "Invitation Printing", orderPrefix = "INV",
+            colorHex = "#22C55E", profitMethod = ProfitMethod.FIXED_MARGIN, marginPercent = 42.5,
+            useUnitCostIfAvailable = true, isActive = false, sortOrder = 3
+        )
+        val cloud = mapper.run { original.toFirestore("uid-1") }
+        assertEquals("invitation_printing", cloud.id)
+        assertEquals("INVITATION_PRINTING", cloud.type)
+        assertEquals(original, mapper.run { cloud.toRoomBusiness(fallbackSortOrder = 9) })
+    }
+
+    @Test
+    fun legacyCloudDocumentsFallBackToOriginalDefaults() {
+        val legacy = com.amacezing.sales.data.firebase.FirestoreBusiness(
+            id = "sintra_board", userId = "uid-1", name = "Sintra Board Printing Business",
+            type = "SINTRA_BOARD", orderPrefix = "snt"
+        )
+        val room = mapper.run { legacy.toRoomBusiness(fallbackSortOrder = 5) }
+        assertEquals("SINTRA_BOARD", room.id)
+        assertEquals("SNT", room.orderPrefix)
+        assertEquals(ProfitMethod.FIXED_MARGIN, room.profitMethod)
+        assertEquals(58.3333, room.marginPercent, 0.0001)
+        assertEquals(1, room.sortOrder)
+        assertTrue(room.isActive)
+    }
+}

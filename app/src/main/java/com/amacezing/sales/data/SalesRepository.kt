@@ -64,10 +64,10 @@ class SalesRepository(private val database: AppDatabase) {
     }
 
     /**
-     * Until the Settings screen manages businesses directly, the legacy Settings fields remain
-     * editable; mirror their prefix and margin rules onto the two original businesses.
+     * Older cloud backups store margin rules only in Settings. When a restored business document lacks
+     * its own rule fields, carry the Settings values onto the two original businesses once.
      */
-    private suspend fun syncLegacyBusinessesFromSettings(settings: AppSettings) {
+    private suspend fun applyLegacySettingsToOriginalBusinesses(settings: AppSettings) {
         businessDao.getBusinessById(Business.ENGRAVING_ID)?.let {
             businessDao.upsert(it.copy(orderPrefix = settings.engravingOrderPrefix.ifBlank { it.orderPrefix }))
         }
@@ -81,21 +81,6 @@ class SalesRepository(private val database: AppDatabase) {
             )
         }
     }
-
-    val allTransactions: Flow<List<TransactionWithDetails>> =
-        transactionDao.getAllTransactionsWithDetails()
-
-    val allQuotations: Flow<List<com.amacezing.sales.model.QuotationWithItems>> =
-        quotationDao.getAllQuotations()
-
-    val allProducts: Flow<List<Product>> = productDao.getAllProducts()
-
-    val allCustomers: Flow<List<Customer>> = customerDao.getAllCustomers()
-
-    val settingsFlow: Flow<AppSettings?> = settingsDao.getSettingsFlow()
-
-    val businessProfileFlow: Flow<com.amacezing.sales.model.BusinessProfile?> =
-        businessProfileDao.getProfileFlow()
 
     suspend fun getBusinessProfileSnapshot(): com.amacezing.sales.model.BusinessProfile {
         return withContext(Dispatchers.IO) {
@@ -118,7 +103,6 @@ class SalesRepository(private val database: AppDatabase) {
     suspend fun updateSettings(settings: AppSettings) {
         withContext(Dispatchers.IO) {
             settingsDao.insertOrUpdate(settings)
-            syncLegacyBusinessesFromSettings(settings)
         }
     }
 
@@ -383,9 +367,14 @@ class SalesRepository(private val database: AppDatabase) {
         transactions: List<com.amacezing.sales.data.firebase.FirestoreTransaction>,
         cloudSettings: com.amacezing.sales.data.firebase.FirestoreSettings?,
         cloudProfile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile? = null,
-        restoredLogoPath: String? = null
+        restoredLogoPath: String? = null,
+        cloudBusinesses: List<com.amacezing.sales.data.firebase.FirestoreBusiness> = emptyList()
     ) = withContext(Dispatchers.IO) {
         val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
+        cloudBusinesses.forEachIndexed { index, cloud ->
+            businessDao.upsert(mapper.run { cloud.toRoomBusiness(fallbackSortOrder = index) })
+        }
+        val legacyBusinessDocs = cloudBusinesses.any { it.marginPercent == null }
         val restoredCustomers = customers.map { mapper.run { it.toRoomCustomer() } }
         if (restoredCustomers.isNotEmpty()) customerDao.insertCustomers(restoredCustomers)
 
@@ -424,7 +413,7 @@ class SalesRepository(private val database: AppDatabase) {
         if (cloudSettings != null) {
             val restoredSettings = mapper.run { cloudSettings.toRoomSettings(id = 1) }
             settingsDao.insertOrUpdate(restoredSettings)
-            syncLegacyBusinessesFromSettings(restoredSettings)
+            if (legacyBusinessDocs || cloudBusinesses.isEmpty()) applyLegacySettingsToOriginalBusinesses(restoredSettings)
         }
 
         if (cloudProfile != null) {

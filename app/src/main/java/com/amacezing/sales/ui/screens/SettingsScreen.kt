@@ -1,6 +1,10 @@
 package com.amacezing.sales.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,13 +66,30 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val settings by viewModel.settings.collectAsState()
+    val businesses by viewModel.businesses.collectAsState()
+    var editingBusiness by remember { mutableStateOf<com.amacezing.sales.model.Business?>(null) }
+    var showBusinessDialog by remember { mutableStateOf(false) }
 
-    var engName by remember(settings) { mutableStateOf(settings.businessNameEngraving) }
-    var sntName by remember(settings) { mutableStateOf(settings.businessNameSintra) }
-    var engPrefix by remember(settings) { mutableStateOf(settings.engravingOrderPrefix) }
-    var sntPrefix by remember(settings) { mutableStateOf(settings.sintraOrderPrefix) }
-    var sntMarginText by remember(settings) { mutableStateOf(settings.sintraDefaultMarginPercent.toString()) }
-    var sntUseCost by remember(settings) { mutableStateOf(settings.sintraUseCostCalculation) }
+
+    if (showBusinessDialog) {
+        val current = editingBusiness
+        com.amacezing.sales.ui.components.BusinessEditDialog(
+            initial = current,
+            nextSortOrder = (businesses.maxOfOrNull { it.sortOrder } ?: -1) + 1,
+            canArchive = businesses.count { it.isActive && it.id != current?.id } > 0,
+            validate = { n, p -> viewModel.validateBusiness(n, p, current?.id) },
+            newId = { n -> viewModel.newBusinessId(n) },
+            onSave = { saved ->
+                viewModel.saveBusiness(saved)
+                showBusinessDialog = false
+                editingBusiness = null
+            },
+            onDismiss = {
+                showBusinessDialog = false
+                editingBusiness = null
+            }
+        )
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -93,32 +114,12 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Configure business rules, order prefixes, and margins",
+                            text = "Manage your businesses, privacy and sync",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    Button(
-                        onClick = {
-                            val margin = sntMarginText.toDoubleOrNull() ?: 58.3333
-                            viewModel.updateSettings(
-                                settings.copy(
-                                    businessNameEngraving = engName.trim(),
-                                    businessNameSintra = sntName.trim(),
-                                    engravingOrderPrefix = engPrefix.trim().uppercase(),
-                                    sintraOrderPrefix = sntPrefix.trim().uppercase(),
-                                    sintraDefaultMarginPercent = margin,
-                                    sintraUseCostCalculation = sntUseCost
-                                )
-                            )
-                        },
-                        modifier = Modifier.testTag("save_settings_button")
-                    ) {
-                        Icon(Icons.Default.Save, contentDescription = "Save", modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Save")
-                    }
                 }
             }
 
@@ -182,7 +183,7 @@ fun SettingsScreen(
                 }
             }
 
-            // Business Identity
+            // Businesses (entities)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -190,61 +191,58 @@ fun SettingsScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Business Names", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        OutlinedTextField(
-                            value = engName,
-                            onValueChange = { engName = it },
-                            label = { Text("Engraving Business Name") },
-                            modifier = Modifier.fillMaxWidth().testTag("engraving_name_input")
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        OutlinedTextField(
-                            value = sntName,
-                            onValueChange = { sntName = it },
-                            label = { Text("Sintra Board Business Name") },
-                            modifier = Modifier.fillMaxWidth().testTag("sintra_name_input")
-                        )
-                    }
-                }
-            }
-
-            // Order Number Prefixes
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Order Number Prefixes", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text(
-                            "Generated orders follow the pattern: PREFIX-YYYY-0001 (e.g., ENG-2026-0001)",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = engPrefix,
-                                onValueChange = { engPrefix = it },
-                                label = { Text("Engraving Prefix") },
-                                modifier = Modifier.weight(1f).testTag("engraving_prefix_input")
-                            )
-
-                            OutlinedTextField(
-                                value = sntPrefix,
-                                onValueChange = { sntPrefix = it },
-                                label = { Text("Sintra Board Prefix") },
-                                modifier = Modifier.weight(1f).testTag("sintra_prefix_input")
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Businesses", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text(
+                                    "Each business has its own order prefix and profit rule.",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { editingBusiness = null; showBusinessDialog = true },
+                                modifier = Modifier.testTag("add_business_button")
+                            ) { Text("Add") }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        businesses.forEach { business ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { editingBusiness = business; showBusinessDialog = true }
+                                    .padding(vertical = 10.dp)
+                                    .testTag("business_row_${business.id.lowercase()}"),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .clip(CircleShape)
+                                        .background(com.amacezing.sales.ui.components.parseBusinessColor(business.colorHex))
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        business.name + if (!business.isActive) " (archived)" else "",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp
+                                    )
+                                    Text(
+                                        "Prefix ${business.orderPrefix} • " +
+                                            if (business.profitMethod == com.amacezing.sales.model.ProfitMethod.UNIT_COST) "Unit costs"
+                                            else "Margin ${if (settings.isProfitMasked) "••••" else com.amacezing.sales.util.Formatters.formatPercent(business.marginPercent)}",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = "Edit ${business.name}",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -282,54 +280,6 @@ fun SettingsScreen(
 
             item {
                 com.amacezing.sales.update.UpdateSettingsCard()
-            }
-
-            // Sintra Board Margin Configuration
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Sintra Board Profit Calculation Rules", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text(
-                            "Preserved from existing Excel sales monitoring workbook (default 58.3333% of Net Sales).",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        OutlinedTextField(
-                            value = sntMarginText,
-                            onValueChange = { sntMarginText = it },
-                            label = { Text("Estimated Profit Margin (%)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.fillMaxWidth().testTag("sintra_margin_input")
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Use Actual Unit Costs Instead", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                Text(
-                                    "When enabled, profit is calculated as Net Sales − Actual Product Costs instead of using the estimated margin %.",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = sntUseCost,
-                                onCheckedChange = { sntUseCost = it },
-                                modifier = Modifier.testTag("sintra_cost_toggle")
-                            )
-                        }
-                    }
-                }
             }
 
             // Cloud Firestore Synchronization

@@ -83,6 +83,12 @@ class FirestoreBusinessRepository(
                 "name" to business.name,
                 "type" to business.type,
                 "orderPrefix" to business.orderPrefix,
+                "colorHex" to business.colorHex,
+                "profitMethod" to business.profitMethod,
+                "marginPercent" to business.marginPercent,
+                "useUnitCostIfAvailable" to business.useUnitCostIfAvailable,
+                "isActive" to business.isActive,
+                "sortOrder" to business.sortOrder,
                 "createdAt" to FieldValue.serverTimestamp()
             )
             docRef.set(payload, SetOptions.merge()).await()

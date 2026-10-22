@@ -30,7 +30,7 @@ service cloud.firestore {
       return data.id is string &&
              data.userId == userId &&
              data.name is string && data.name.size() > 0 &&
-             data.type in ['ENGRAVING', 'SINTRA_BOARD'] &&
+             data.type is string && data.type.size() > 0 &&
              data.orderPrefix is string && data.orderPrefix.size() > 0;
     }
 
@@ -39,7 +39,7 @@ service cloud.firestore {
       return data.id is string &&
              data.userId == userId &&
              data.name is string && data.name.size() > 0 &&
-             data.businessType in ['ENGRAVING', 'SINTRA_BOARD'] &&
+             data.businessType is string && data.businessType.size() > 0 &&
              data.sellingPrice is number && data.sellingPrice >= 0 &&
              data.unitCost is number && data.unitCost >= 0 &&
              data.isActive is bool;
@@ -57,7 +57,7 @@ service cloud.firestore {
       return data.id is string &&
              data.userId == userId &&
              data.orderNumber is string && data.orderNumber.size() > 0 &&
-             data.businessType in ['ENGRAVING', 'SINTRA_BOARD'] &&
+             data.businessType is string && data.businessType.size() > 0 &&
              data.customerName is string && data.customerName.size() > 0 &&
              data.grossSales is number && data.grossSales >= 0 &&
              data.netSales is number && data.netSales >= 0 &&

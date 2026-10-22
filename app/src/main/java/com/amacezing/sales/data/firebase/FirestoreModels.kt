@@ -22,6 +22,13 @@ data class FirestoreBusiness(
     val name: String = "",
     val type: String = "ENGRAVING",
     val orderPrefix: String = "ENG",
+    // Added with dynamic businesses. Null on older documents, which then use the original defaults.
+    val colorHex: String? = null,
+    val profitMethod: String? = null,
+    val marginPercent: Double? = null,
+    val useUnitCostIfAvailable: Boolean? = null,
+    val isActive: Boolean? = null,
+    val sortOrder: Int? = null,
     @ServerTimestamp val createdAt: Timestamp? = null
 )
 
