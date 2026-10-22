@@ -31,6 +31,21 @@ class SalesRepository(private val database: AppDatabase) {
 
     val allBusinesses: Flow<List<Business>> = businessDao.getAllBusinessesFlow()
 
+    val allTransactions: Flow<List<TransactionWithDetails>> =
+        transactionDao.getAllTransactionsWithDetails()
+
+    val allQuotations: Flow<List<com.amacezing.sales.model.QuotationWithItems>> =
+        quotationDao.getAllQuotations()
+
+    val allProducts: Flow<List<Product>> = productDao.getAllProducts()
+
+    val allCustomers: Flow<List<Customer>> = customerDao.getAllCustomers()
+
+    val settingsFlow: Flow<AppSettings?> = settingsDao.getSettingsFlow()
+
+    val businessProfileFlow: Flow<com.amacezing.sales.model.BusinessProfile?> =
+        businessProfileDao.getProfileFlow()
+
     suspend fun getBusinessesSnapshot(): List<Business> = withContext(Dispatchers.IO) {
         businessDao.getAllBusinesses()
     }
