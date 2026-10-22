@@ -1,0 +1,223 @@
+name: Updates builder
+
+# Upload a bundle zip to the repo root, then run this workflow.
+# It unzips the bundle, copies every file into its matching folder (starting from "app",
+# creating folders that don't exist yet), commits with your message and pushes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: 'Commit message'
+        required: true
+        type: string
+      zip_name:
+        description: 'Zip file name at the repo root (leave empty to auto-detect)'
+        required: false
+        default: ''
+        type: string
+      run_build:
+        description: 'Run the debug build after the update'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write   # commit and push the updated files
+  actions: write    # start the debug build workflow afterwards
+
+concurrency:
+  group: updates-builder
+  cancel-in-progress: false
+
+jobs:
+  apply-update:
+    name: Apply bundle and commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Optional: add a WORKFLOW_PAT secret (a personal access token with "repo" and "workflow"
+          # scopes) if bundles may also change files under .github/workflows.
+          token: ${{ secrets.WORKFLOW_PAT || github.token }}
+
+      - name: Find the zip
+        id: find_zip
+        shell: bash
+        env:
+          ZIP_NAME: ${{ inputs.zip_name }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${ZIP_NAME// }" ]; then
+            ZIP="${ZIP_NAME// }"
+          else
+            mapfile -t CANDIDATES < <(find . -maxdepth 1 -type f -name '*.zip' -printf '%f\n' | sort)
+            if [ "${#CANDIDATES[@]}" -eq 0 ]; then
+              echo "::error::No .zip file found at the repo root. Upload the bundle first, then run again."
+              exit 1
+            fi
+            ZIP="${CANDIDATES[0]}"
+            if [ "${#CANDIDATES[@]}" -gt 1 ]; then
+              echo "Several zips found: ${CANDIDATES[*]}"
+              NEWEST=0
+              for f in "${CANDIDATES[@]}"; do
+                T="$(git log -1 --format=%ct -- "$f" 2>/dev/null || echo 0)"
+                if [ "${T:-0}" -ge "$NEWEST" ]; then NEWEST="${T:-0}"; ZIP="$f"; fi
+              done
+              echo "Using the most recently uploaded one."
+            fi
+          fi
+
+          case "$ZIP" in
+            */*|..*) echo "::error::The zip must be at the repo root (no folders in the name)."; exit 1 ;;
+          esac
+          if [ ! -f "$ZIP" ]; then
+            echo "::error::'$ZIP' was not found at the repo root."
+            exit 1
+          fi
+
+          echo "Using zip: $ZIP"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Unzip and copy files
+        id: apply
+        shell: bash
+        env:
+          ZIP: ${{ steps.find_zip.outputs.zip }}
+          HAS_PAT: ${{ secrets.WORKFLOW_PAT != '' }}
+        run: |
+          set -euo pipefail
+
+          EXTRACT="$RUNNER_TEMP/bundle"
+          rm -rf "$EXTRACT"
+          mkdir -p "$EXTRACT"
+          unzip -q -o "$ZIP" -d "$EXTRACT"
+
+          # Remove OS junk that zip tools add
+          rm -rf "$EXTRACT/__MACOSX"
+          find "$EXTRACT" -name '.DS_Store' -delete
+
+          # Locate the folder that holds "app" (the zip may wrap everything in one extra folder)
+          if [ -d "$EXTRACT/app" ]; then
+            SRC="$EXTRACT"
+          else
+            SRC="$(find "$EXTRACT" -mindepth 2 -maxdepth 4 -type d -name app -printf '%h\n' \
+              | awk '{ print length($0) " " $0 }' | sort -n | head -n1 | cut -d' ' -f2-)"
+          fi
+          if [ -z "${SRC:-}" ]; then
+            # No "app" folder: accept a single wrapper folder or the zip root as-is
+            TOP_COUNT="$(find "$EXTRACT" -mindepth 1 -maxdepth 1 | wc -l)"
+            if [ "$TOP_COUNT" -eq 1 ] && [ -d "$(find "$EXTRACT" -mindepth 1 -maxdepth 1)" ]; then
+              SRC="$(find "$EXTRACT" -mindepth 1 -maxdepth 1)"
+            else
+              SRC="$EXTRACT"
+            fi
+          fi
+
+          FILE_COUNT="$(find "$SRC" -type f | wc -l)"
+          if [ "$FILE_COUNT" -eq 0 ]; then
+            echo "::error::The zip contains no files."
+            exit 1
+          fi
+          echo "Bundle root: ${SRC#"$EXTRACT"/}  ($FILE_COUNT files)"
+
+          EXCLUDES=(--exclude='./.git')
+          if [ "$HAS_PAT" != "true" ]; then
+            if [ -d "$SRC/.github/workflows" ]; then
+              echo "::warning::Skipping these workflow files (GITHUB_TOKEN cannot change workflows; add a WORKFLOW_PAT secret to allow it, or upload them by hand):"
+              (cd "$SRC" && find .github/workflows -type f)
+            fi
+            EXCLUDES+=(--exclude='./.github/workflows')
+          fi
+
+          # Copy everything over the repo; tar creates any folder that does not exist yet
+          DEST="$PWD"
+          (cd "$SRC" && tar -cf - "${EXCLUDES[@]}" .) | tar -xf - -C "$DEST" --no-same-owner
+
+      - name: Commit and push
+        id: commit
+        shell: bash
+        env:
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
+          ZIP: ${{ steps.find_zip.outputs.zip }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # The source zip is removed in the last step, so it is not part of this commit.
+          git add -A
+          git reset -q -- "$ZIP"
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit (the files already match the repo)."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "### Updates builder"
+            echo ""
+            echo "**Commit message:** $COMMIT_MESSAGE"
+            echo ""
+            echo "| Change | File |"
+            echo "| --- | --- |"
+            git diff --cached --name-status | while IFS=$'\t' read -r status path rest; do
+              case "$status" in
+                A) label="Added" ;;
+                M) label="Updated" ;;
+                D) label="Deleted" ;;
+                R*) label="Renamed" ;;
+                *) label="$status" ;;
+              esac
+              echo "| $label | \`${rest:-$path}\` |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          git commit -m "$COMMIT_MESSAGE"
+          git push origin "HEAD:${BRANCH}"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "Pushed to ${BRANCH}."
+
+      - name: Start the debug build
+        if: steps.commit.outputs.changed == 'true' && inputs.run_build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          # Pushes made with the built-in token do not trigger other workflows, so start it explicitly.
+          gh workflow run android-build.yml --ref "$BRANCH" \
+            || echo "::warning::Could not start android-build.yml (check the workflow file name)."
+
+      - name: Delete the source zip
+        shell: bash
+        env:
+          ZIP: ${{ steps.find_zip.outputs.zip }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git ls-files --error-unmatch -- "$ZIP" >/dev/null 2>&1; then
+            echo "'$ZIP' is already gone."
+            exit 0
+          fi
+
+          git rm -f --quiet -- "$ZIP"
+          git commit -m "Remove applied bundle $ZIP"
+          git pull --rebase --quiet origin "$BRANCH"
+          git push origin "HEAD:${BRANCH}"
+          echo "Deleted $ZIP from ${BRANCH}."
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source zip \`$ZIP\` was deleted from the repo." >> "$GITHUB_STEP_SUMMARY"
