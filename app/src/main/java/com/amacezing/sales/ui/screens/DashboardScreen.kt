@@ -6,6 +6,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import com.amacezing.sales.ui.theme.AppTextSecondary
+import com.amacezing.sales.ui.theme.AppSurfaceElevated
+import com.amacezing.sales.ui.theme.AppBorder
+import com.amacezing.sales.ui.theme.AccentViolet
+import com.amacezing.sales.ui.theme.AccentCyan
+import com.amacezing.sales.ui.components.FilterSectionLabel
+import com.amacezing.sales.ui.components.DateFilterBar
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,6 +85,8 @@ fun DashboardScreen(
 ) {
     val selectedBusiness by viewModel.selectedBusiness.collectAsState()
     val dateRangeType by viewModel.dateRangeType.collectAsState()
+    val customStartMillis by viewModel.customStartDateMillis.collectAsState()
+    val customEndMillis by viewModel.customEndDateMillis.collectAsState()
     val metrics by viewModel.dashboardMetrics.collectAsState()
     val settings by viewModel.settings.collectAsState()
     val filteredTransactions by viewModel.filteredTransactions.collectAsState()
@@ -88,151 +100,147 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header
+            // Header + filters: one coherent block (title, BUSINESS, PERIOD)
         item {
-            Spacer(modifier = Modifier.height(8.dp))
             Column(modifier = Modifier.fillMaxWidth()) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Dashboard",
-                    style = MaterialTheme.typography.headlineSmall,
+                    fontSize = 25.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = AccentCyan
                 )
                 Text(
                     text = "Sales Monitoring & Profit Dashboard",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontSize = 14.sp,
+                    color = AppTextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                BusinessFilterChips(
+                    selectedBusiness = selectedBusiness,
+                    onSelectBusiness = { viewModel.setBusinessFilter(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    showLabel = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                DateFilterBar(
+                    selectedType = dateRangeType,
+                    customStartMillis = customStartMillis,
+                    customEndMillis = customEndMillis,
+                    onSelectType = { viewModel.setDateRangeType(it) },
+                    onApplyCustomRange = { start, end -> viewModel.applyCustomDateRange(start, end) },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
 
-        // Business Selector
-            item {
-                BusinessFilterChips(
-                    selectedBusiness = selectedBusiness,
-                    onSelectBusiness = { viewModel.setBusinessFilter(it) },
-                    modifier = Modifier.fillMaxWidth()
+        item {
+            FilterSectionLabel("Financial overview", modifier = Modifier.padding(top = 8.dp))
+        }
+
+        // Primary metrics (equal-height rows)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    title = "Net Sales",
+                    value = Formatters.formatCurrency(metrics.netSales),
+                    icon = Icons.Default.AttachMoney,
+                    iconColor = AccentCyan,
+                    subtitle = "${metrics.ordersCount} orders recorded",
+                    subtitleColor = AccentCyan,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+
+                MetricCard(
+                    title = "Estimated Profit",
+                    value = metrics.estimatedProfit.formatCurrency(settings.isProfitMasked),
+                    icon = Icons.Default.ShowChart,
+                    iconColor = AccentViolet,
+                    subtitle = "Margin: ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(metrics.profitMarginPercent)}",
+                    subtitleColor = AccentViolet,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
+        }
 
-            // Date Range Chips
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    DateRangeType.values().forEach { range ->
-                        FilterChip(
-                            selected = dateRangeType == range,
-                            onClick = { viewModel.setDateRangeType(range) },
-                            label = { Text(range.label, fontSize = 12.sp) },
-                            leadingIcon = if (dateRangeType == range) {
-                                { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                            } else null,
-                            modifier = Modifier.testTag("date_range_${range.name.lowercase()}")
-                        )
-                    }
-                }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    title = "Collected Cash",
+                    value = Formatters.formatCurrency(metrics.totalCollected),
+                    icon = Icons.Default.Payments,
+                    iconColor = StatusPaid,
+                    subtitle = "Paid into account",
+                    subtitleColor = StatusPaid,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+
+                MetricCard(
+                    title = "Outstanding",
+                    value = Formatters.formatCurrency(metrics.outstandingReceivables),
+                    icon = Icons.Default.Warning,
+                    iconColor = StatusPending,
+                    subtitle = "Receivables to collect",
+                    subtitleColor = StatusPending,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
             }
+        }
 
-            // Top Primary Metric Cards Grid
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    MetricCard(
-                        title = "Net Sales",
-                        value = Formatters.formatCurrency(metrics.netSales),
-                        icon = Icons.Default.AttachMoney,
-                        iconColor = MaterialTheme.colorScheme.primary,
-                        subtitle = "${metrics.ordersCount} orders recorded",
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    MetricCard(
-                        title = "Estimated Profit",
-                        value = metrics.estimatedProfit.formatCurrency(settings.isProfitMasked),
-                        icon = Icons.Default.ShowChart,
-                        iconColor = SecondaryAmber,
-                        subtitle = "Margin: ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(metrics.profitMarginPercent)}",
-                        subtitleColor = SecondaryAmber,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    MetricCard(
-                        title = "Collected Cash",
-                        value = Formatters.formatCurrency(metrics.totalCollected),
-                        icon = Icons.Default.Payments,
-                        iconColor = StatusPaid,
-                        subtitle = "Paid into account",
-                        subtitleColor = StatusPaid,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    MetricCard(
-                        title = "Outstanding",
-                        value = Formatters.formatCurrency(metrics.outstandingReceivables),
-                        icon = Icons.Default.Warning,
-                        iconColor = StatusPending,
-                        subtitle = "Receivables to collect",
-                        subtitleColor = StatusPending,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
-
-            // Secondary Metrics (2 columns)
+        // Secondary metrics (2 columns)
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricCard(
                         title = "Gross Sales",
                         value = Formatters.formatCurrency(metrics.grossSales),
                         icon = Icons.Default.ShoppingBag,
-                        modifier = Modifier.weight(1f)
+                        iconColor = AccentCyan,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                     MetricCard(
                         title = "Discounts",
                         value = Formatters.formatCurrency(metrics.totalDiscounts),
                         icon = Icons.Default.Discount,
-                        iconColor = SecondaryAmber,
-                        modifier = Modifier.weight(1f)
+                        iconColor = StatusPending,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricCard(
                         title = "Avg Order",
                         value = Formatters.formatCurrency(metrics.averageOrderValue),
                         icon = Icons.Default.Receipt,
-                        modifier = Modifier.weight(1f)
+                        iconColor = AccentCyan,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                     MetricCard(
                         title = "Top Customer",
                         value = metrics.topCustomerName.ifEmpty { "—" },
                         icon = Icons.Default.EmojiEvents,
-                        iconColor = SecondaryAmber,
+                        iconColor = StatusPending,
                         subtitle = if (metrics.topCustomerName.isEmpty()) null
                         else Formatters.formatCurrency(metrics.topCustomerSales),
-                        subtitleColor = SecondaryAmber,
-                        modifier = Modifier.weight(1f)
+                        subtitleColor = StatusPending,
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
             }
@@ -299,8 +307,9 @@ fun DashboardScreen(
                             .fillMaxWidth()
                             .clickable { viewModel.viewingTransaction.value = item }
                             .testTag("outstanding_item_${tx.orderNumber}"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, AppBorder),
+                        colors = CardDefaults.cardColors(containerColor = AppSurfaceElevated)
                     ) {
                         Row(
                             modifier = Modifier
@@ -364,8 +373,9 @@ fun DashboardScreen(
             if (filteredTransactions.isEmpty()) {
                 item {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, AppBorder),
+                        color = AppSurfaceElevated,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -394,8 +404,9 @@ fun DashboardScreen(
                             .fillMaxWidth()
                             .clickable { viewModel.viewingTransaction.value = item }
                             .testTag("recent_order_${tx.orderNumber}"),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, AppBorder),
+                        colors = CardDefaults.cardColors(containerColor = AppSurfaceElevated)
                     ) {
                         Row(
                             modifier = Modifier

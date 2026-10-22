@@ -43,7 +43,7 @@ enum class DateRangeType(val label: String) {
     THIS_WEEK("This Week"),
     THIS_MONTH("This Month"),
     THIS_YEAR("This Year"),
-    CUSTOM("Custom")
+    CUSTOM("Custom Range")
 }
 
 data class DashboardMetrics(
@@ -275,6 +275,20 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     fun setCustomDateRange(startMillis: Long?, endMillis: Long?) {
         _customStartDateMillis.value = startMillis
         _customEndDateMillis.value = endMillis
+    }
+
+    /**
+     * Applies an inclusive custom range of local calendar dates and switches the period filter to CUSTOM.
+     * The range is stored as [start of first day, end of last day] in the app's time zone, so every order
+     * on the selected end date is included. Returns false (and changes nothing) if start is after end.
+     */
+    fun applyCustomDateRange(startDate: LocalDate, endDate: LocalDate): Boolean {
+        if (startDate.isAfter(endDate)) return false
+        val zone = Formatters.MANILA_ZONE_ID
+        _customStartDateMillis.value = startDate.atStartOfDay(zone).toInstant().toEpochMilli()
+        _customEndDateMillis.value = endDate.atTime(java.time.LocalTime.MAX).atZone(zone).toInstant().toEpochMilli()
+        _dateRangeType.value = DateRangeType.CUSTOM
+        return true
     }
 
     fun setSearchQuery(query: String) {

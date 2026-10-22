@@ -42,6 +42,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -353,7 +357,8 @@ fun MainAppScaffold(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars),
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                containerColor = com.amacezing.sales.ui.theme.AppSurface,
+                tonalElevation = 0.dp
             ) {
                 val primaryScreens = listOf(
                     Screen.DASHBOARD,
@@ -362,18 +367,42 @@ fun MainAppScaffold(
                     Screen.PRODUCTS,
                     Screen.SETTINGS
                 )
+                val violet = com.amacezing.sales.ui.theme.AccentViolet
+                val muted = com.amacezing.sales.ui.theme.AppTextSecondary
 
                 primaryScreens.forEach { screen ->
+                    val selected = currentScreen == screen
                     NavigationBarItem(
-                        selected = currentScreen == screen,
+                        selected = selected,
                         onClick = { viewModel.navigateTo(screen) },
                         icon = {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = screen.title
-                            )
+                            Box(contentAlignment = Alignment.TopCenter) {
+                                // Compact selected indicator (replaces the large pill)
+                                if (selected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(20.dp)
+                                            .height(3.dp)
+                                            .background(violet, androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                                    )
+                                }
+                                Icon(
+                                    imageVector = screen.icon,
+                                    contentDescription = screen.title,
+                                    modifier = Modifier
+                                        .padding(top = 6.dp)
+                                        .size(24.dp)
+                                )
+                            }
                         },
-                        label = { Text(screen.title, fontSize = 11.sp, maxLines = 1) },
+                        label = { Text(screen.title, fontSize = 12.sp, maxLines = 1) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = violet,
+                            selectedTextColor = violet,
+                            unselectedIconColor = muted,
+                            unselectedTextColor = muted,
+                            indicatorColor = Color.Transparent
+                        ),
                         modifier = Modifier.testTag("bottom_nav_${screen.name.lowercase()}")
                     )
                 }

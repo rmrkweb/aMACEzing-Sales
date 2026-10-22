@@ -1,5 +1,6 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +26,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.amacezing.sales.ui.theme.AppBorder
+import com.amacezing.sales.ui.theme.AppSurfaceElevated
+import com.amacezing.sales.ui.theme.AppTextPrimary
+import com.amacezing.sales.ui.theme.AppTextSecondary
+
+/** Picks a value font size that keeps the whole amount on one line inside a half-width card. */
+private fun valueFontSize(value: String) = when {
+    value.length <= 8 -> 24.sp
+    value.length <= 10 -> 20.sp
+    value.length <= 12 -> 18.sp
+    else -> 16.sp
+}
 
 @Composable
 fun MetricCard(
@@ -42,38 +56,36 @@ fun MetricCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("metric_card_${title.lowercase().replace(" ", "_")}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = AppSurfaceElevated),
+        border = BorderStroke(1.dp, AppBorder),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(44.dp)
                         .clip(CircleShape)
-                        .background(iconColor.copy(alpha = 0.12f)),
+                        .background(iconColor.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
-                        contentDescription = title,
+                        contentDescription = null,
                         tint = iconColor,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
+                    fontSize = 13.sp,
+                    color = AppTextSecondary,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
@@ -81,19 +93,23 @@ fun MetricCard(
 
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = AppTextPrimary,
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
+                fontSize = valueFontSize(value),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis
             )
 
             if (!subtitle.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = subtitleColor ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
+                    fontSize = 12.sp,
+                    color = subtitleColor ?: AppTextSecondary,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

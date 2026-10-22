@@ -60,9 +60,10 @@ fun SalesAndProfitTrendChart(
         modifier = modifier
             .fillMaxWidth()
             .testTag("sales_trend_chart_card"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = com.amacezing.sales.ui.theme.AppSurfaceElevated
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -92,19 +93,21 @@ fun SalesAndProfitTrendChart(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    if (!isProfitMasked) {
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .background(Color(0xFFA78BFA), CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Profit",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(Color(0xFFA78BFA), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Profit",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -124,9 +127,10 @@ fun SalesAndProfitTrendChart(
                     )
                 }
             } else {
+                // When profit is masked, scale from sales only so bar heights can't reveal profit.
                 val maxVal = (
                     data.maxOfOrNull {
-                        maxOf(it.value, it.secondaryValue)
+                        if (isProfitMasked) it.value else maxOf(it.value, it.secondaryValue)
                     } ?: 1.0
                 ).coerceAtLeast(100.0)
 
@@ -169,7 +173,8 @@ fun SalesAndProfitTrendChart(
                             cornerRadius = CornerRadius(4f, 4f)
                         )
 
-                        // Profit bar - Violet
+                        // Profit bar - Violet (hidden while profit is masked)
+                        if (!isProfitMasked) {
                         val profitHeight =
                             ((item.secondaryValue / maxVal) * (canvasHeight - 10f)).toFloat()
                         val profitLeft = groupCenterX + 2f
@@ -181,6 +186,7 @@ fun SalesAndProfitTrendChart(
                             size = Size(barWidth, profitHeight),
                             cornerRadius = CornerRadius(4f, 4f)
                         )
+                        }
                     }
                 }
 
@@ -214,9 +220,10 @@ fun BusinessComparisonCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("business_comparison_chart_card"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = com.amacezing.sales.ui.theme.AppSurfaceElevated
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -379,9 +386,10 @@ fun ProductSalesBreakdownCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("product_sales_breakdown_card"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = com.amacezing.sales.ui.theme.AppSurfaceElevated
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -469,9 +477,10 @@ fun PaidVsUnpaidCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag("paid_vs_unpaid_card"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = com.amacezing.sales.ui.theme.AppSurfaceElevated
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
