@@ -51,6 +51,7 @@ import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.SintraBoardBlue
 import com.amacezing.sales.ui.theme.StatusCancelled
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 import com.amacezing.sales.viewmodel.SalesViewModel
 
 @Composable
@@ -166,7 +167,7 @@ fun ProductsScreen(
                                 text = if (settings.sintraUseCostCalculation)
                                     "Currently using actual unit costs to compute profit."
                                 else
-                                    "Currently using default margin of ${Formatters.formatPercent(settings.sintraDefaultMarginPercent)} of net sales (from Excel workbook). You can switch this in Settings.",
+                                    "Currently using default margin of ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(settings.sintraDefaultMarginPercent)} of net sales (from Excel workbook). You can switch this in Settings.",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -272,7 +273,7 @@ fun ProductsScreen(
                                 Column {
                                     Text("Unit Cost", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(
-                                        Formatters.formatCurrency(product.unitCost),
+                                        product.unitCost.formatCurrency(settings.isProfitMasked),
                                         fontWeight = FontWeight.Medium,
                                         fontSize = 14.sp
                                     )
@@ -281,7 +282,7 @@ fun ProductsScreen(
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text("Estimated Unit Margin", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Text(
-                                        "${Formatters.formatCurrency(unitProfit)} (${Formatters.formatPercent(unitMargin)})",
+                                        if (settings.isProfitMasked) "₱ •••••• (••••)" else "${Formatters.formatCurrency(unitProfit)} (${Formatters.formatPercent(unitMargin)})",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp,
                                         color = SecondaryAmber
