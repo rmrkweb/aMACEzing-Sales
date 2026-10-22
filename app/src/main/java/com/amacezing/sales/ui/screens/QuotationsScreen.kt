@@ -3,6 +3,7 @@ package com.amacezing.sales.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.ui.components.nameOf
 import com.amacezing.sales.model.QuotationStatus
 import com.amacezing.sales.model.QuotationWithItems
 import com.amacezing.sales.pdf.PdfDocumentGenerator
@@ -178,7 +180,9 @@ fun QuotationsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(androidx.compose.foundation.rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     FilterChip(
@@ -186,16 +190,13 @@ fun QuotationsScreen(
                         onClick = { selectedBusinessType = null },
                         label = { Text("All Divisions", fontSize = 11.sp) }
                     )
-                    FilterChip(
-                        selected = selectedBusinessType == BusinessType.ENGRAVING,
-                        onClick = { selectedBusinessType = BusinessType.ENGRAVING },
-                        label = { Text("Laser Engraving", fontSize = 11.sp) }
-                    )
-                    FilterChip(
-                        selected = selectedBusinessType == BusinessType.SINTRA_BOARD,
-                        onClick = { selectedBusinessType = BusinessType.SINTRA_BOARD },
-                        label = { Text("Sintra Board", fontSize = 11.sp) }
-                    )
+                    com.amacezing.sales.ui.components.LocalBusinesses.current.forEach { business ->
+                        FilterChip(
+                            selected = selectedBusinessType == business.id,
+                            onClick = { selectedBusinessType = business.id },
+                            label = { Text(business.name, fontSize = 11.sp) }
+                        )
+                    }
                 }
             }
 
@@ -401,7 +402,8 @@ fun QuotationsScreen(
                                             val pdfFile = PdfDocumentGenerator.generateQuotationPdf(
                                                 context = context,
                                                 quotationWithItems = qWithItems,
-                                                profile = businessProfile
+                                                profile = businessProfile,
+                                                businessName = viewModel.businesses.value.nameOf(q.businessType)
                                             )
                                             viewModel.activePdfDialog.value = GeneratedPdfState(
                                                 file = pdfFile,

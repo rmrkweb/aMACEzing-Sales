@@ -253,8 +253,7 @@ fun DashboardScreen(
 
             item {
                 BusinessComparisonCard(
-                    engravingMetrics = businessComparison.first,
-                    sintraMetrics = businessComparison.second,
+                    comparison = businessComparison,
                     isProfitMasked = settings.isProfitMasked
                 )
             }

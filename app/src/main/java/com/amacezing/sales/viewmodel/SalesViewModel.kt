@@ -67,6 +67,11 @@ data class ChartBarData(
     val secondaryValue: Double = 0.0
 )
 
+data class BusinessMetrics(
+    val business: com.amacezing.sales.model.Business,
+    val metrics: DashboardMetrics
+)
+
 data class ProductSaleStat(
     val productName: String,
     val businessType: BusinessType,
@@ -142,7 +147,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
     // Import/Export state
     val importText = MutableStateFlow("")
-    val importBusinessType = MutableStateFlow(BusinessType.ENGRAVING)
+    val importBusinessType = MutableStateFlow(com.amacezing.sales.model.Business.ENGRAVING_ID)
     val importSheetName = MutableStateFlow("Engraving 2026")
     val importPreview = MutableStateFlow<ImportPreviewSummary?>(null)
     val isImporting = MutableStateFlow(false)
@@ -150,6 +155,14 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     // Raw Room flows
     val allTransactions: StateFlow<List<TransactionWithDetails>> = repository.allTransactions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val businesses: StateFlow<List<com.amacezing.sales.model.Business>> = repository.allBusinesses
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.amacezing.sales.model.Business.DEFAULTS)
+
+    /** Profit rule for a business id; unknown ids behave like unit-cost businesses. */
+    fun profitRuleFor(businessId: String): com.amacezing.sales.model.ProfitRule =
+        businesses.value.firstOrNull { it.id == businessId }?.toProfitRule()
+            ?: com.amacezing.sales.model.ProfitRule()
 
     val allProducts: StateFlow<List<Product>> = repository.allProducts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -444,10 +457,8 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Business Comparison Stats
-    val businessComparison: StateFlow<Pair<DashboardMetrics, DashboardMetrics>> = filteredTransactions.combine(MutableStateFlow(Unit)) { list, _ ->
+    val businessComparison: StateFlow<List<BusinessMetrics>> = combine(filteredTransactions, businesses) { list, bizList ->
         val active = list.filter { it.transaction.paymentStatus != PaymentStatus.CANCELLED }
-        val engList = active.filter { it.transaction.businessType == BusinessType.ENGRAVING }
-        val sntList = active.filter { it.transaction.businessType == BusinessType.SINTRA_BOARD }
 
         fun toMetrics(items: List<TransactionWithDetails>): DashboardMetrics {
             val g = items.sumOf { it.transaction.grossSales }
@@ -474,8 +485,12 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
 
-        Pair(toMetrics(engList), toMetrics(sntList))
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Pair(DashboardMetrics(), DashboardMetrics()))
+        // Active businesses always appear; archived ones only while they still have orders.
+        bizList.mapNotNull { business ->
+            val items = active.filter { it.transaction.businessType == business.id }
+            if (business.isActive || items.isNotEmpty()) BusinessMetrics(business, toMetrics(items)) else null
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Monthly Trend Chart Data
     val monthlyTrendData: StateFlow<List<ChartBarData>> = filteredTransactions.map { list ->
@@ -528,13 +543,11 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             val txId = UUID.randomUUID().toString()
 
             val calcResult = SalesCalculator.calculate(
-                businessType = businessType,
+                profitRule = profitRuleFor(businessType),
                 items = lineItems,
                 discountType = discountType,
                 discountValue = discountValue,
-                amountPaid = initialPayment,
-                sintraMarginPercent = currentSettings.sintraDefaultMarginPercent,
-                sintraUseCostCalculation = currentSettings.sintraUseCostCalculation
+                amountPaid = initialPayment
             )
 
             val newTransaction = SalesTransaction(
@@ -603,14 +616,12 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val currentSettings = settings.value
             val calcResult = SalesCalculator.calculate(
-                businessType = tx.businessType,
+                profitRule = profitRuleFor(tx.businessType),
                 items = lineItems,
                 discountType = discountType,
                 discountValue = discountValue,
                 amountPaid = tx.amountPaid,
-                currentStatus = statusOverride ?: tx.paymentStatus,
-                sintraMarginPercent = currentSettings.sintraDefaultMarginPercent,
-                sintraUseCostCalculation = currentSettings.sintraUseCostCalculation
+                currentStatus = statusOverride ?: tx.paymentStatus
             )
 
             val updatedTx = tx.copy(
@@ -742,7 +753,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                         id = if (product.id > 0) product.id.toString() else id.toString(),
                         userId = firestoreRepo.requireUserId(),
                         name = product.name,
-                        businessType = product.businessType.name,
+                        businessType = product.businessType,
                         sellingPrice = product.sellingPrice,
                         unitCost = product.unitCost,
                         isActive = product.isActive
@@ -949,14 +960,14 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         val biz = importBusinessType.value
         val sheet = importSheetName.value
         val existing = allTransactions.value
-        val margin = settings.value.sintraDefaultMarginPercent
+        val rule = profitRuleFor(biz)
 
         val summary = CsvHelper.parseAndValidateExcelCsv(
             content = content,
             businessType = biz,
             sheetName = sheet,
             existingTransactions = existing,
-            sintraMarginPercent = margin
+            profitRule = rule
         )
         importPreview.value = summary
     }
@@ -972,13 +983,13 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             val sheetName = importSheetName.value
             val currentSettings = settings.value
 
-            val p1Name = if (biz == BusinessType.ENGRAVING) "Bamboo Coaster" else "Sintra Board A4 Print"
-            val p1Selling = if (biz == BusinessType.ENGRAVING) 70.0 else 150.0
-            val p1Cost = if (biz == BusinessType.ENGRAVING) 35.0 else 62.50
+            val p1Name = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) "Bamboo Coaster" else "Sintra Board A4 Print"
+            val p1Selling = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 70.0 else 150.0
+            val p1Cost = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 35.0 else 62.50
 
-            val p2Name = if (biz == BusinessType.ENGRAVING) "Bamboo Ballpen" else "Sintra Board A3 Print"
-            val p2Selling = if (biz == BusinessType.ENGRAVING) 40.0 else 300.0
-            val p2Cost = if (biz == BusinessType.ENGRAVING) 20.0 else 125.00
+            val p2Name = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) "Bamboo Ballpen" else "Sintra Board A3 Print"
+            val p2Selling = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 40.0 else 300.0
+            val p2Cost = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 20.0 else 125.00
 
             var importedCount = 0
 

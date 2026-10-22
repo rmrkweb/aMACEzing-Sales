@@ -45,6 +45,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.amacezing.sales.model.BusinessType
+import androidx.compose.foundation.horizontalScroll
+import com.amacezing.sales.ui.components.parseBusinessColor
+import com.amacezing.sales.ui.components.colorOf
+import com.amacezing.sales.ui.components.LocalBusinesses
+import com.amacezing.sales.model.ProfitMethod
 import com.amacezing.sales.ui.components.BusinessBadge
 import com.amacezing.sales.ui.theme.EngravingBrown
 import com.amacezing.sales.ui.theme.SecondaryAmber
@@ -61,6 +66,7 @@ fun ProductsScreen(
 ) {
     val products by viewModel.allProducts.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val businesses = LocalBusinesses.current
     var selectedTab by remember { mutableStateOf<BusinessType?>(null) }
 
     val filteredProducts = remember(products, selectedTab) {
@@ -123,55 +129,56 @@ fun ProductsScreen(
             // Business Filter Tabs
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(androidx.compose.foundation.rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilterChip(
                         selected = selectedTab == null,
                         onClick = { selectedTab = null },
-                        label = { Text("All Products (${products.size})") },
-                        modifier = Modifier.weight(1f)
+                        label = { Text("All Products (${products.size})") }
                     )
-                    FilterChip(
-                        selected = selectedTab == BusinessType.ENGRAVING,
-                        onClick = { selectedTab = BusinessType.ENGRAVING },
-                        label = { Text("Engraving") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChip(
-                        selected = selectedTab == BusinessType.SINTRA_BOARD,
-                        onClick = { selectedTab = BusinessType.SINTRA_BOARD },
-                        label = { Text("Sintra Board") },
-                        modifier = Modifier.weight(1f)
-                    )
+                    businesses.forEach { business ->
+                        FilterChip(
+                            selected = selectedTab == business.id,
+                            onClick = { selectedTab = business.id },
+                            label = { Text(business.name) }
+                        )
+                    }
                 }
             }
 
-            // Sintra Board Configuration Notice
-            if (selectedTab == BusinessType.SINTRA_BOARD || selectedTab == null) {
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = SintraBoardBlue.copy(alpha = 0.08f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = "Sintra Board Profit Calculation",
-                                fontWeight = FontWeight.Bold,
-                                color = SintraBoardBlue,
-                                fontSize = 13.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = if (settings.sintraUseCostCalculation)
-                                    "Currently using actual unit costs to compute profit."
-                                else
-                                    "Currently using default margin of ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(settings.sintraDefaultMarginPercent)} of net sales (from Excel workbook). You can switch this in Settings.",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+            // Profit-rule notices for fixed-margin businesses in view
+            items(
+                businesses.filter {
+                    it.profitMethod == ProfitMethod.FIXED_MARGIN &&
+                        (selectedTab == null || selectedTab == it.id)
+                },
+                key = { it.id }
+            ) { business ->
+                val accent = parseBusinessColor(business.colorHex)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = accent.copy(alpha = 0.08f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "${business.name} Profit Calculation",
+                            fontWeight = FontWeight.Bold,
+                            color = accent,
+                            fontSize = 13.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (business.useUnitCostIfAvailable)
+                                "Uses actual unit costs when an order has them; otherwise ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(business.marginPercent)} of net sales."
+                            else
+                                "Currently using a default margin of ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(business.marginPercent)} of net sales.",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -218,7 +225,7 @@ fun ProductsScreen(
                                     Icon(
                                         Icons.Default.Inventory,
                                         contentDescription = null,
-                                        tint = if (product.businessType == BusinessType.ENGRAVING) EngravingBrown else SintraBoardBlue,
+                                        tint = businesses.colorOf(product.businessType),
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))

@@ -37,12 +37,20 @@ import com.amacezing.sales.model.Product
 @Composable
 fun ProductDialog(
     initialProduct: Product? = null,
-    defaultBusinessType: BusinessType = BusinessType.ENGRAVING,
+    defaultBusinessType: BusinessType? = null,
     onSave: (Product) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(initialProduct?.name ?: "") }
-    var businessType by remember { mutableStateOf(initialProduct?.businessType ?: defaultBusinessType) }
+    val businesses = LocalBusinesses.current
+    var businessType by remember {
+        mutableStateOf(
+            initialProduct?.businessType
+                ?: defaultBusinessType
+                ?: businesses.selectable().firstOrNull()?.id
+                ?: com.amacezing.sales.model.Business.ENGRAVING_ID
+        )
+    }
     var businessDropdownExpanded by remember { mutableStateOf(false) }
     var sellingPriceText by remember { mutableStateOf(initialProduct?.sellingPrice?.toString() ?: "") }
     var unitCostText by remember { mutableStateOf(initialProduct?.unitCost?.toString() ?: "") }
@@ -68,7 +76,7 @@ fun ProductDialog(
                     onExpandedChange = { businessDropdownExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = businessType.displayName,
+                        value = businesses.nameOf(businessType),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Business *") },
@@ -82,9 +90,9 @@ fun ProductDialog(
                         expanded = businessDropdownExpanded,
                         onDismissRequest = { businessDropdownExpanded = false }
                     ) {
-                        BusinessType.values().forEach { bType ->
+                        businesses.selectable().map { it.id }.forEach { bType ->
                             DropdownMenuItem(
-                                text = { Text(bType.displayName) },
+                                text = { Text(businesses.nameOf(bType)) },
                                 onClick = {
                                     businessType = bType
                                     businessDropdownExpanded = false
@@ -134,10 +142,10 @@ fun ProductDialog(
                     label = { Text("Unit Cost (₱)") },
                     supportingText = {
                         Text(
-                            text = if (businessType == BusinessType.ENGRAVING)
+                            text = if (businesses.findById(businessType)?.profitMethod != com.amacezing.sales.model.ProfitMethod.FIXED_MARGIN)
                                 "Captured on future sales. Profit = Selling Price - Cost."
                             else
-                                "Optional for Sintra. If omitted, uses configured margin %.",
+                                "Optional for this business. If omitted, uses its configured margin %.",
                             fontSize = 11.sp
                         )
                     },

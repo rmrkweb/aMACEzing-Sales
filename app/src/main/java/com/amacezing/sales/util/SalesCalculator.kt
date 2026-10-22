@@ -1,6 +1,7 @@
 package com.amacezing.sales.util
 
-import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.model.ProfitMethod
+import com.amacezing.sales.model.ProfitRule
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentStatus
 import kotlin.math.roundToLong
@@ -30,15 +31,30 @@ object SalesCalculator {
         return (value * 100.0).roundToLong() / 100.0
     }
 
+    /**
+     * UNIT_COST: net sales - cost (the former Engraving rule).
+     * FIXED_MARGIN: net sales x margin %, or net - cost when the business opts into real costs
+     * and the order has them (the former Sintra rule).
+     */
+    fun calculateProfit(rule: ProfitRule, netSales: Double, totalProductCost: Double): Double {
+        return when (rule.method) {
+            ProfitMethod.UNIT_COST -> roundTo2Decimals(netSales - totalProductCost)
+            ProfitMethod.FIXED_MARGIN ->
+                if (rule.useUnitCostIfAvailable && totalProductCost > 0.0) {
+                    roundTo2Decimals(netSales - totalProductCost)
+                } else {
+                    roundTo2Decimals(netSales * (rule.marginPercent / 100.0))
+                }
+        }
+    }
+
     fun calculate(
-        businessType: BusinessType,
+        profitRule: ProfitRule,
         items: List<LineItemInput>,
         discountType: DiscountType = DiscountType.PERCENTAGE,
         discountValue: Double = 0.0,
         amountPaid: Double = 0.0,
-        currentStatus: PaymentStatus = PaymentStatus.PENDING,
-        sintraMarginPercent: Double = DEFAULT_SINTRA_MARGIN_PERCENT,
-        sintraUseCostCalculation: Boolean = false
+        currentStatus: PaymentStatus = PaymentStatus.PENDING
     ): CalculationResult {
         val grossSales = roundTo2Decimals(items.sumOf { it.quantity * it.unitSellingPrice })
         val totalProductCost = roundTo2Decimals(items.sumOf { it.quantity * it.unitCost })
@@ -56,19 +72,7 @@ object SalesCalculator {
 
         val netSales = roundTo2Decimals((grossSales - discountAmount).coerceAtLeast(0.0))
 
-        val estimatedProfit = when (businessType) {
-            BusinessType.ENGRAVING -> {
-                roundTo2Decimals(netSales - totalProductCost)
-            }
-            BusinessType.SINTRA_BOARD -> {
-                if (sintraUseCostCalculation && totalProductCost > 0.0) {
-                    roundTo2Decimals(netSales - totalProductCost)
-                } else {
-                    val marginMultiplier = sintraMarginPercent / 100.0
-                    roundTo2Decimals(netSales * marginMultiplier)
-                }
-            }
-        }
+        val estimatedProfit = calculateProfit(profitRule, netSales, totalProductCost)
 
         val estimatedMarginPercent = if (netSales > 0.0) {
             roundTo2Decimals((estimatedProfit / netSales) * 100.0)

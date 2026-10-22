@@ -53,7 +53,8 @@ object PdfDocumentGenerator {
     fun generateQuotationPdf(
         context: Context,
         quotationWithItems: QuotationWithItems,
-        profile: BusinessProfile
+        profile: BusinessProfile,
+        businessName: String? = null
     ): File {
         val quotation = quotationWithItems.quotation
         val items = quotationWithItems.lineItems
@@ -87,7 +88,7 @@ object PdfDocumentGenerator {
             contact = quotation.customerPhone,
             email = quotation.customerEmail,
             address = quotation.customerAddress,
-            division = "${quotation.businessType.displayName} Division",
+            division = "${businessName ?: com.amacezing.sales.model.Business.fallbackName(quotation.businessType)} Division",
             startY = currentY
         )
 
@@ -164,7 +165,8 @@ object PdfDocumentGenerator {
         context: Context,
         transactionWithDetails: TransactionWithDetails,
         profile: BusinessProfile,
-        customer: com.amacezing.sales.model.Customer? = null
+        customer: com.amacezing.sales.model.Customer? = null,
+        businessName: String? = null
     ): File {
         val tx = transactionWithDetails.transaction
         val items = transactionWithDetails.lineItems
@@ -203,7 +205,7 @@ object PdfDocumentGenerator {
             contact = customer?.phone.orEmpty(),
             email = customer?.email.orEmpty(),
             address = customer?.notes.orEmpty(),
-            division = "${tx.businessType.displayName} Division",
+            division = "${businessName ?: com.amacezing.sales.model.Business.fallbackName(tx.businessType)} Division",
             startY = currentY
         )
 

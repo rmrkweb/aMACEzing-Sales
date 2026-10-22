@@ -54,19 +54,18 @@ fun BusinessBadge(
     businessType: BusinessType,
     modifier: Modifier = Modifier
 ) {
-    val (bgColor, textColor) = when (businessType) {
-        BusinessType.ENGRAVING -> EngravingBrown.copy(alpha = 0.15f) to EngravingBrown
-        BusinessType.SINTRA_BOARD -> SintraBoardBlue.copy(alpha = 0.15f) to SintraBoardBlue
-    }
+    val businesses = LocalBusinesses.current
+    val textColor = businesses.colorOf(businessType)
+    val bgColor = textColor.copy(alpha = 0.15f)
 
     Box(
         modifier = modifier
-            .testTag("business_badge_${businessType.name.lowercase()}")
+            .testTag("business_badge_${businessType.lowercase()}")
             .background(bgColor, RoundedCornerShape(8.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
-            text = businessType.displayName,
+            text = businesses.nameOf(businessType),
             color = textColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium

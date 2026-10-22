@@ -6,7 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.amacezing.sales.data.AppDatabase
 import com.amacezing.sales.data.SalesRepository
 import com.amacezing.sales.model.BusinessProfile
-import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.model.Business
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentRecord
 import com.amacezing.sales.model.PaymentStatus
@@ -100,7 +100,7 @@ class PdfAndQuotationTest {
         val quotation = Quotation(
             id = 1,
             quotationNumber = "QT-2026-0001",
-            businessType = BusinessType.ENGRAVING,
+            businessType = Business.ENGRAVING_ID,
             customerName = "Acme Corporation",
             customerPhone = "0917-123-4567",
             customerEmail = "acme@example.com",
@@ -161,7 +161,7 @@ class PdfAndQuotationTest {
         val tx = SalesTransaction(
             id = "tx-123",
             orderNumber = "ENG-2026-0001",
-            businessType = BusinessType.ENGRAVING,
+            businessType = Business.ENGRAVING_ID,
             customerName = "Juan Dela Cruz",
             orderDateEpochMillis = System.currentTimeMillis(),
             discountType = DiscountType.PERCENTAGE,
@@ -227,7 +227,7 @@ class PdfAndQuotationTest {
     fun testQuotationRoomPersistence_savesAndUpdatesStatus() = runBlocking {
         val quotation = Quotation(
             quotationNumber = "QT-2026-0002",
-            businessType = BusinessType.SINTRA_BOARD,
+            businessType = Business.SINTRA_BOARD_ID,
             customerName = "Maria Santos",
             customerPhone = "0918-999-8888",
             grossTotal = 500.0,

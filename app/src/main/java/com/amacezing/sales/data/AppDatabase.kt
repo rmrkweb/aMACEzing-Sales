@@ -27,9 +27,10 @@ import kotlinx.coroutines.launch
         AppSettings::class,
         com.amacezing.sales.model.BusinessProfile::class,
         com.amacezing.sales.model.Quotation::class,
-        com.amacezing.sales.model.QuotationLineItem::class
+        com.amacezing.sales.model.QuotationLineItem::class,
+        com.amacezing.sales.model.Business::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -41,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun settingsDao(): SettingsDao
     abstract fun businessProfileDao(): BusinessProfileDao
     abstract fun quotationDao(): QuotationDao
+    abstract fun businessDao(): BusinessDao
 
     companion object {
         @Volatile
@@ -64,6 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                         }
                     })
+                    .addMigrations(MIGRATION_3_4)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
@@ -71,7 +74,49 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+
+        /**
+         * v3 -> v4: adds the `businesses` table. Existing orders, products and quotations keep
+         * their `businessType` text values ("ENGRAVING" / "SINTRA_BOARD"), which become business ids,
+         * so no existing row is modified. The two original businesses are seeded from the
+         * current settings so names, prefixes and the Sintra margin rules carry over.
+         */
+        val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `businesses` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, " +
+                        "`orderPrefix` TEXT NOT NULL, `colorHex` TEXT NOT NULL, `profitMethod` TEXT NOT NULL, " +
+                        "`marginPercent` REAL NOT NULL, `useUnitCostIfAvailable` INTEGER NOT NULL, " +
+                        "`isActive` INTEGER NOT NULL, `sortOrder` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "INSERT OR IGNORE INTO businesses (id, name, orderPrefix, colorHex, profitMethod, " +
+                        "marginPercent, useUnitCostIfAvailable, isActive, sortOrder) " +
+                        "SELECT 'ENGRAVING', 'Engraving', engravingOrderPrefix, '#00B8F0', 'UNIT_COST', " +
+                        "0.0, 0, 1, 0 FROM app_settings WHERE id = 1"
+                )
+                db.execSQL(
+                    "INSERT OR IGNORE INTO businesses (id, name, orderPrefix, colorHex, profitMethod, " +
+                        "marginPercent, useUnitCostIfAvailable, isActive, sortOrder) " +
+                        "SELECT 'SINTRA_BOARD', 'Sintra Board', sintraOrderPrefix, '#A78BFA', 'FIXED_MARGIN', " +
+                        "sintraDefaultMarginPercent, sintraUseCostCalculation, 1, 1 FROM app_settings WHERE id = 1"
+                )
+                // Fresh/odd databases without a settings row: fall back to defaults.
+                db.execSQL(
+                    "INSERT OR IGNORE INTO businesses VALUES ('ENGRAVING', 'Engraving', 'ENG', '#00B8F0', " +
+                        "'UNIT_COST', 0.0, 0, 1, 0)"
+                )
+                db.execSQL(
+                    "INSERT OR IGNORE INTO businesses VALUES ('SINTRA_BOARD', 'Sintra Board', 'SNT', '#A78BFA', " +
+                        "'FIXED_MARGIN', 58.3333, 0, 1, 1)"
+                )
+            }
+        }
+
         suspend fun populateInitialData(database: AppDatabase) {
+            // Seed the default businesses (no-op if they already exist)
+            database.businessDao().insertIfAbsent(com.amacezing.sales.model.Business.DEFAULTS)
+
             // Seed Settings
             val settingsDao = database.settingsDao()
             if (settingsDao.getSettingsSnapshot() == null) {
@@ -113,14 +158,14 @@ abstract class AppDatabase : RoomDatabase() {
                 // Engraving Business Configuration
                 Product(
                     name = "Bamboo Coaster",
-                    businessType = BusinessType.ENGRAVING,
+                    businessType = com.amacezing.sales.model.Business.ENGRAVING_ID,
                     sellingPrice = 70.0,
                     unitCost = 35.0,
                     isActive = true
                 ),
                 Product(
                     name = "Bamboo Ballpen",
-                    businessType = BusinessType.ENGRAVING,
+                    businessType = com.amacezing.sales.model.Business.ENGRAVING_ID,
                     sellingPrice = 40.0,
                     unitCost = 20.0,
                     isActive = true
@@ -128,14 +173,14 @@ abstract class AppDatabase : RoomDatabase() {
                 // Sintra Board Business Configuration
                 Product(
                     name = "Sintra Board A4 Print",
-                    businessType = BusinessType.SINTRA_BOARD,
+                    businessType = com.amacezing.sales.model.Business.SINTRA_BOARD_ID,
                     sellingPrice = 150.0,
                     unitCost = 62.50, // 41.6667% cost corresponds to 58.3333% margin
                     isActive = true
                 ),
                 Product(
                     name = "Sintra Board A3 Print",
-                    businessType = BusinessType.SINTRA_BOARD,
+                    businessType = com.amacezing.sales.model.Business.SINTRA_BOARD_ID,
                     sellingPrice = 300.0,
                     unitCost = 125.00,
                     isActive = true

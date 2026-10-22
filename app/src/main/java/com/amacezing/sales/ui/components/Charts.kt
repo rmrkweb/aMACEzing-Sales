@@ -4,6 +4,7 @@ package com.amacezing.sales.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.Formatters
 import com.amacezing.sales.util.formatCurrency
+import com.amacezing.sales.viewmodel.BusinessMetrics
 import com.amacezing.sales.viewmodel.ChartBarData
 import com.amacezing.sales.viewmodel.DashboardMetrics
 import com.amacezing.sales.viewmodel.ProductSaleStat
@@ -211,8 +213,7 @@ fun SalesAndProfitTrendChart(
 
 @Composable
 fun BusinessComparisonCard(
-    engravingMetrics: DashboardMetrics,
-    sintraMetrics: DashboardMetrics,
+    comparison: List<BusinessMetrics>,
     modifier: Modifier = Modifier,
     isProfitMasked: Boolean = false
 ) {
@@ -235,142 +236,91 @@ fun BusinessComparisonCard(
             )
             Spacer(modifier = Modifier.height(14.dp))
 
-            val totalNet = engravingMetrics.netSales + sintraMetrics.netSales
-            val engSalesPercent =
-                if (totalNet > 0.0) {
-                    engravingMetrics.netSales / totalNet
-                } else {
-                    0.5
-                }
+            val totalNet = comparison.sumOf { it.metrics.netSales }
 
-            // Proportion bar
+            // Proportion bar: one segment per business, sized by net sales (equal when there are no sales).
             Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Engraving (${Formatters.formatPercent(engSalesPercent * 100)})",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = EngravingBrown
-                    )
-                    Text(
-                        text = "Sintra Board (${Formatters.formatPercent((1.0 - engSalesPercent) * 100)})",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = SintraBoardBlue
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(10.dp)
                         .clip(RoundedCornerShape(5.dp))
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(
-                                engSalesPercent.toFloat().coerceIn(0.05f, 0.95f)
+                    comparison.forEach { item ->
+                        val share = if (totalNet > 0.0) item.metrics.netSales / totalNet else 1.0 / comparison.size.coerceAtLeast(1)
+                        if (share > 0.0) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(share.toFloat().coerceAtLeast(0.02f))
+                                    .height(10.dp)
+                                    .background(parseBusinessColor(item.business.colorHex))
                             )
-                            .height(10.dp)
-                            .background(EngravingBrown)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(10.dp)
-                            .background(SintraBoardBlue)
-                    )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    comparison.forEach { item ->
+                        val share = if (totalNet > 0.0) item.metrics.netSales / totalNet else 0.0
+                        Text(
+                            text = "${item.business.name} (${Formatters.formatPercent(share * 100)})",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = parseBusinessColor(item.business.colorHex)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Two-column side-by-side stats
+            // Side-by-side stats, scrolling sideways once there are more than two businesses.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Engraving column
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            EngravingBrown.copy(alpha = 0.08f),
-                            RoundedCornerShape(12.dp)
+                comparison.forEach { item ->
+                    val color = parseBusinessColor(item.business.colorHex)
+                    val m = item.metrics
+                    Column(
+                        modifier = Modifier
+                            .width(if (comparison.size <= 2) 150.dp else 140.dp)
+                            .background(color.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            item.business.name,
+                            fontWeight = FontWeight.Bold,
+                            color = color,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        "Engraving",
-                        fontWeight = FontWeight.Bold,
-                        color = EngravingBrown,
-                        fontSize = 13.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        "Net: ${Formatters.formatCurrency(engravingMetrics.netSales)}",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        "Profit: ${engravingMetrics.estimatedProfit.formatCurrency(isProfitMasked)}",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "Margin: ${if (isProfitMasked) "••••" else Formatters.formatPercent(engravingMetrics.profitMarginPercent)}",
-                        fontSize = 11.sp,
-                        color = SecondaryAmber
-                    )
-                    Text(
-                        "Orders: ${engravingMetrics.ordersCount}",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Sintra Board column
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            SintraBoardBlue.copy(alpha = 0.08f),
-                            RoundedCornerShape(12.dp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            "Net: ${Formatters.formatCurrency(m.netSales)}",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
                         )
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        "Sintra Board",
-                        fontWeight = FontWeight.Bold,
-                        color = SintraBoardBlue,
-                        fontSize = 13.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        "Net: ${Formatters.formatCurrency(sintraMetrics.netSales)}",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        "Profit: ${sintraMetrics.estimatedProfit.formatCurrency(isProfitMasked)}",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "Margin: ${if (isProfitMasked) "••••" else Formatters.formatPercent(sintraMetrics.profitMarginPercent)}",
-                        fontSize = 11.sp,
-                        color = SecondaryAmber
-                    )
-                    Text(
-                        "Orders: ${sintraMetrics.ordersCount}",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        Text(
+                            "Profit: ${m.estimatedProfit.formatCurrency(isProfitMasked)}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Margin: ${if (isProfitMasked) "••••" else Formatters.formatPercent(m.profitMarginPercent)}",
+                            fontSize = 11.sp,
+                            color = SecondaryAmber
+                        )
+                        Text(
+                            "Orders: ${m.ordersCount}",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -414,12 +364,7 @@ fun ProductSalesBreakdownCard(
 
                 stats.take(5).forEach { stat ->
                     val progress = (stat.totalSales / maxSales).toFloat()
-                    val barColor =
-                        if (stat.businessType == BusinessType.ENGRAVING) {
-                            EngravingBrown
-                        } else {
-                            SintraBoardBlue
-                        }
+                    val barColor = LocalBusinesses.current.colorOf(stat.businessType)
 
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         Row(

@@ -18,7 +18,7 @@ import com.amacezing.sales.data.firebase.FirestoreSettings
 import com.amacezing.sales.data.firebase.FirestoreTransaction
 import com.amacezing.sales.model.AppSettings
 import com.amacezing.sales.model.BusinessProfile
-import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.model.Business
 import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentStatus
@@ -73,7 +73,7 @@ class FirestoreRepositoryParsingTest {
         val roomProduct = Product(
             id = 42L,
             name = "Wooden Keychain",
-            businessType = BusinessType.ENGRAVING,
+            businessType = Business.ENGRAVING_ID,
             sellingPrice = 85.0,
             unitCost = 40.0,
             isActive = true
@@ -141,7 +141,7 @@ class FirestoreRepositoryParsingTest {
             name = "3mm Sintra Board A4",
             businessType = "sintra_board"
         )
-        assertEquals(BusinessType.SINTRA_BOARD, lowercaseSintra.toRoomProduct().businessType)
+        assertEquals(Business.SINTRA_BOARD_ID, lowercaseSintra.toRoomProduct().businessType)
 
         val unknownType = FirestoreProduct(
             id = "6",
@@ -149,7 +149,8 @@ class FirestoreRepositoryParsingTest {
             name = "Laser Cut Acrylic",
             businessType = "UNKNOWN_CUSTOM_SERVICE"
         )
-        assertEquals(BusinessType.ENGRAVING, unknownType.toRoomProduct().businessType)
+        // Custom business ids are now preserved instead of being coerced to Engraving.
+        assertEquals("UNKNOWN_CUSTOM_SERVICE", unknownType.toRoomProduct().businessType)
     }
 
     @Test
@@ -234,7 +235,7 @@ class FirestoreRepositoryParsingTest {
         val originalTx = SalesTransaction(
             id = txId,
             orderNumber = "ENG-2026-0001",
-            businessType = BusinessType.ENGRAVING,
+            businessType = Business.ENGRAVING_ID,
             customerId = 10L,
             customerName = "Apex Corporate",
             orderDateEpochMillis = 1776384000000L,
@@ -526,7 +527,7 @@ class FirestoreRepositoryParsingTest {
             LineItemInput(quantity = 10, unitSellingPrice = 70.0, unitCost = 35.0)
         )
         val calcResult = SalesCalculator.calculate(
-            businessType = BusinessType.ENGRAVING,
+            businessType = Business.ENGRAVING_ID,
             items = lineItems,
             discountType = DiscountType.PERCENTAGE,
             discountValue = 0.0,
@@ -534,14 +535,14 @@ class FirestoreRepositoryParsingTest {
         )
 
         // 2. Generate order number
-        val orderNum = repository.generateOrderNumber(BusinessType.ENGRAVING)
+        val orderNum = repository.generateOrderNumber(Business.ENGRAVING_ID)
         assertTrue(orderNum.startsWith("ENG-"))
 
         // 3. Build Room transaction
         val tx = SalesTransaction(
             id = UUID.randomUUID().toString(),
             orderNumber = orderNum,
-            businessType = BusinessType.ENGRAVING,
+            businessType = Business.ENGRAVING_ID,
             customerName = "Acme Corp",
             orderDateEpochMillis = System.currentTimeMillis(),
             grossSales = calcResult.grossSales,
@@ -597,13 +598,11 @@ class FirestoreRepositoryParsingTest {
             LineItemInput(quantity = 4, unitSellingPrice = 150.0, unitCost = 62.50)
         )
         val calcResult = SalesCalculator.calculate(
-            businessType = BusinessType.SINTRA_BOARD,
+            profitRule = Business.DEFAULTS.first { it.id == Business.SINTRA_BOARD_ID }.toProfitRule(),
             items = lineItems,
             discountType = DiscountType.PERCENTAGE,
             discountValue = 0.0,
-            amountPaid = 300.0, // Partial payment (300 out of 600)
-            sintraMarginPercent = 58.3333,
-            sintraUseCostCalculation = false
+            amountPaid = 300.0 // Partial payment (300 out of 600)
         )
 
         assertEquals(600.0, calcResult.grossSales, 0.01)
@@ -614,7 +613,7 @@ class FirestoreRepositoryParsingTest {
         val tx = SalesTransaction(
             id = UUID.randomUUID().toString(),
             orderNumber = "SNT-2026-0005",
-            businessType = BusinessType.SINTRA_BOARD,
+            businessType = Business.SINTRA_BOARD_ID,
             customerName = "Signage Hub",
             orderDateEpochMillis = System.currentTimeMillis(),
             grossSales = calcResult.grossSales,
@@ -632,7 +631,7 @@ class FirestoreRepositoryParsingTest {
         assertEquals(300.0, firestoreTx.outstandingBalance, 0.01)
 
         val parsedRoomTx = firestoreTx.toRoomTransaction()
-        assertEquals(BusinessType.SINTRA_BOARD, parsedRoomTx.businessType)
+        assertEquals(Business.SINTRA_BOARD_ID, parsedRoomTx.businessType)
         assertEquals(PaymentStatus.PARTIALLY_PAID, parsedRoomTx.paymentStatus)
         assertEquals(300.0, parsedRoomTx.outstandingBalance, 0.01)
     }

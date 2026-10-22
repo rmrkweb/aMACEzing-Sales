@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -102,7 +103,12 @@ fun QuotationDialog(
         remarks: String
     ) -> Unit
 ) {
-    var selectedBusinessType by remember { mutableStateOf(BusinessType.ENGRAVING) }
+    val businesses = LocalBusinesses.current
+    var selectedBusinessType by remember {
+        mutableStateOf(
+            businesses.selectable().firstOrNull()?.id ?: com.amacezing.sales.model.Business.ENGRAVING_ID
+        )
+    }
     var customerName by remember { mutableStateOf("") }
     var customerPhone by remember { mutableStateOf("") }
     var customerEmail by remember { mutableStateOf("") }
@@ -196,13 +202,16 @@ fun QuotationDialog(
                     item {
                         Text("Business Division", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Spacer(modifier = Modifier.height(6.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            BusinessType.entries.forEach { bType ->
+                        Row(
+                            modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            businesses.selectable().map { it.id }.forEach { bType ->
                                 FilterChip(
                                     selected = selectedBusinessType == bType,
                                     onClick = { selectedBusinessType = bType },
-                                    label = { Text(bType.displayName) },
-                                    modifier = Modifier.testTag("quotation_biz_chip_${bType.name.lowercase()}")
+                                    label = { Text(businesses.nameOf(bType)) },
+                                    modifier = Modifier.testTag("quotation_biz_chip_${bType.lowercase()}")
                                 )
                             }
                         }

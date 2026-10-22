@@ -1,6 +1,8 @@
 package com.amacezing.sales
 
-import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.model.Business
+import com.amacezing.sales.model.ProfitMethod
+import com.amacezing.sales.model.ProfitRule
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentStatus
 import com.amacezing.sales.util.LineItemInput
@@ -18,7 +20,7 @@ class SalesCalculatorTest {
         )
 
         val result = SalesCalculator.calculate(
-            businessType = BusinessType.ENGRAVING,
+            profitRule = Business.DEFAULTS.first { it.id == Business.ENGRAVING_ID }.toProfitRule(),
             items = items,
             discountType = DiscountType.PERCENTAGE,
             discountValue = 5.0, // 5% discount
@@ -42,13 +44,11 @@ class SalesCalculatorTest {
         )
 
         val result = SalesCalculator.calculate(
-            businessType = BusinessType.SINTRA_BOARD,
+            profitRule = Business.DEFAULTS.first { it.id == Business.SINTRA_BOARD_ID }.toProfitRule(),
             items = items,
             discountType = DiscountType.PERCENTAGE,
             discountValue = 0.0,
-            amountPaid = 3000.0,
-            sintraMarginPercent = 58.3333,
-            sintraUseCostCalculation = false
+            amountPaid = 3000.0
         )
 
         assertEquals(3000.0, result.grossSales, 0.01)
@@ -67,7 +67,7 @@ class SalesCalculatorTest {
         )
 
         val result = SalesCalculator.calculate(
-            businessType = BusinessType.ENGRAVING,
+            profitRule = Business.DEFAULTS.first { it.id == Business.ENGRAVING_ID }.toProfitRule(),
             items = items,
             discountType = DiscountType.FIXED,
             discountValue = 100.0,
@@ -88,12 +88,37 @@ class SalesCalculatorTest {
         )
 
         val result = SalesCalculator.calculate(
-            businessType = BusinessType.ENGRAVING,
+            profitRule = Business.DEFAULTS.first { it.id == Business.ENGRAVING_ID }.toProfitRule(),
             items = items,
             amountPaid = 0.0,
             currentStatus = PaymentStatus.CANCELLED
         )
 
         assertEquals(PaymentStatus.CANCELLED, result.resolvedStatus)
+    }
+
+    @Test
+    fun testFixedMarginIgnoresCostByDefault() {
+        val rule = ProfitRule(ProfitMethod.FIXED_MARGIN, 40.0, useUnitCostIfAvailable = false)
+        assertEquals(400.0, SalesCalculator.calculateProfit(rule, netSales = 1000.0, totalProductCost = 900.0), 0.001)
+    }
+
+    @Test
+    fun testFixedMarginUsesCostWhenOptedInAndAvailable() {
+        val rule = ProfitRule(ProfitMethod.FIXED_MARGIN, 40.0, useUnitCostIfAvailable = true)
+        assertEquals(300.0, SalesCalculator.calculateProfit(rule, netSales = 1000.0, totalProductCost = 700.0), 0.001)
+        // No cost recorded: falls back to the margin, exactly like the former Sintra rule.
+        assertEquals(400.0, SalesCalculator.calculateProfit(rule, netSales = 1000.0, totalProductCost = 0.0), 0.001)
+    }
+
+    @Test
+    fun testNewBusinessUsesItsOwnRule() {
+        val invitation = ProfitRule(ProfitMethod.FIXED_MARGIN, 25.0)
+        val result = SalesCalculator.calculate(
+            profitRule = invitation,
+            items = listOf(LineItemInput(quantity = 100, unitSellingPrice = 20.0, unitCost = 5.0))
+        )
+        assertEquals(2000.0, result.netSales, 0.001)
+        assertEquals(500.0, result.estimatedProfit, 0.001)
     }
 }

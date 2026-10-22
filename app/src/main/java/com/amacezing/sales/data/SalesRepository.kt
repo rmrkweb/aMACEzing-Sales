@@ -1,7 +1,9 @@
 package com.amacezing.sales.data
 
 import com.amacezing.sales.model.AppSettings
+import com.amacezing.sales.model.Business
 import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.model.ProfitMethod
 import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.PaymentRecord
 import com.amacezing.sales.model.PaymentStatus
@@ -25,6 +27,60 @@ class SalesRepository(private val database: AppDatabase) {
     private val settingsDao = database.settingsDao()
     private val businessProfileDao = database.businessProfileDao()
     private val quotationDao = database.quotationDao()
+    private val businessDao = database.businessDao()
+
+    val allBusinesses: Flow<List<Business>> = businessDao.getAllBusinessesFlow()
+
+    suspend fun getBusinessesSnapshot(): List<Business> = withContext(Dispatchers.IO) {
+        businessDao.getAllBusinesses()
+    }
+
+    suspend fun saveBusiness(business: Business) = withContext(Dispatchers.IO) {
+        businessDao.upsert(business)
+    }
+
+    /**
+     * Creates a placeholder business for any id that orders/products refer to but that has no row
+     * (e.g. records restored from the cloud on a fresh install), so nothing becomes unreachable.
+     */
+    suspend fun ensureBusinessesExist(ids: Collection<String>) = withContext(Dispatchers.IO) {
+        val known = businessDao.getAllBusinesses().map { it.id }.toSet()
+        var order = known.size
+        ids.filter { it.isNotBlank() && it !in known }.distinct().forEach { id ->
+            businessDao.upsert(
+                Business(
+                    id = id,
+                    name = Business.fallbackName(id),
+                    orderPrefix = id.filter { it.isLetterOrDigit() }.take(3).uppercase().ifEmpty { "ORD" },
+                    colorHex = "#9AA6B2",
+                    profitMethod = ProfitMethod.UNIT_COST,
+                    marginPercent = 0.0,
+                    useUnitCostIfAvailable = false,
+                    isActive = true,
+                    sortOrder = order++
+                )
+            )
+        }
+    }
+
+    /**
+     * Until the Settings screen manages businesses directly, the legacy Settings fields remain
+     * editable; mirror their prefix and margin rules onto the two original businesses.
+     */
+    private suspend fun syncLegacyBusinessesFromSettings(settings: AppSettings) {
+        businessDao.getBusinessById(Business.ENGRAVING_ID)?.let {
+            businessDao.upsert(it.copy(orderPrefix = settings.engravingOrderPrefix.ifBlank { it.orderPrefix }))
+        }
+        businessDao.getBusinessById(Business.SINTRA_BOARD_ID)?.let {
+            businessDao.upsert(
+                it.copy(
+                    orderPrefix = settings.sintraOrderPrefix.ifBlank { it.orderPrefix },
+                    marginPercent = settings.sintraDefaultMarginPercent,
+                    useUnitCostIfAvailable = settings.sintraUseCostCalculation
+                )
+            )
+        }
+    }
 
     val allTransactions: Flow<List<TransactionWithDetails>> =
         transactionDao.getAllTransactionsWithDetails()
@@ -62,16 +118,14 @@ class SalesRepository(private val database: AppDatabase) {
     suspend fun updateSettings(settings: AppSettings) {
         withContext(Dispatchers.IO) {
             settingsDao.insertOrUpdate(settings)
+            syncLegacyBusinessesFromSettings(settings)
         }
     }
 
     suspend fun generateOrderNumber(businessType: BusinessType, customDateMillis: Long? = null): String {
         return withContext(Dispatchers.IO) {
-            val settings = getSettingsSnapshot()
-            val prefix = when (businessType) {
-                BusinessType.ENGRAVING -> settings.engravingOrderPrefix
-                BusinessType.SINTRA_BOARD -> settings.sintraOrderPrefix
-            }
+            val prefix = businessDao.getBusinessById(businessType)?.orderPrefix?.takeIf { it.isNotBlank() }
+                ?: businessType.filter { it.isLetterOrDigit() }.take(3).uppercase().ifEmpty { "ORD" }
             val dateMillis = customDateMillis ?: System.currentTimeMillis()
             val year = Instant.ofEpochMilli(dateMillis)
                 .atZone(Formatters.MANILA_ZONE_ID)
@@ -363,8 +417,14 @@ class SalesRepository(private val database: AppDatabase) {
             }
         }
 
+        ensureBusinessesExist(
+            restoredProducts.map { it.businessType } + roomTransactions.map { it.businessType }
+        )
+
         if (cloudSettings != null) {
-            settingsDao.insertOrUpdate(mapper.run { cloudSettings.toRoomSettings(id = 1) })
+            val restoredSettings = mapper.run { cloudSettings.toRoomSettings(id = 1) }
+            settingsDao.insertOrUpdate(restoredSettings)
+            syncLegacyBusinessesFromSettings(restoredSettings)
         }
 
         if (cloudProfile != null) {

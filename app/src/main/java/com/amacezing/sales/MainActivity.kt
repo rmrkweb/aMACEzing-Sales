@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
 import com.amacezing.sales.data.firebase.FirestoreSalesRepository
+import com.amacezing.sales.ui.components.nameOf
 import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.Product
 import com.amacezing.sales.model.SalesTransaction
@@ -121,7 +122,12 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                AppRoot(viewModel = viewModel)
+                val businesses by viewModel.businesses.collectAsState()
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.amacezing.sales.ui.components.LocalBusinesses provides businesses
+                ) {
+                    AppRoot(viewModel = viewModel)
+                }
             }
         }
     }
@@ -440,8 +446,6 @@ fun MainAppScaffold(
             initialTransaction = null,
             availableProducts = allProducts,
             existingCustomers = allCustomers,
-            sintraMarginPercent = settings.sintraDefaultMarginPercent,
-            sintraUseCostCalculation = settings.sintraUseCostCalculation,
             isProfitMasked = settings.isProfitMasked,
             onSaveNew = { biz, cust, date, items, pInfo, dType, dVal, initPaid, pMethod, pNotes, rem ->
                 viewModel.createTransaction(
@@ -469,8 +473,6 @@ fun MainAppScaffold(
             isDuplicateMode = false,
             availableProducts = allProducts,
             existingCustomers = allCustomers,
-            sintraMarginPercent = settings.sintraDefaultMarginPercent,
-            sintraUseCostCalculation = settings.sintraUseCostCalculation,
             isProfitMasked = settings.isProfitMasked,
             onSaveNew = { _, _, _, _, _, _, _, _, _, _, _ -> },
             onSaveEdit = { original, items, pInfo, dType, dVal, rem, stOverride ->
@@ -524,7 +526,8 @@ fun MainAppScaffold(
                         context = context,
                         transactionWithDetails = txToView,
                         profile = businessProfile,
-                        customer = matchingCustomer
+                        customer = matchingCustomer,
+                        businessName = viewModel.businesses.value.nameOf(txToView.transaction.businessType)
                     )
                     viewModel.activePdfDialog.value = GeneratedPdfState(
                         file = pdf,
@@ -629,7 +632,8 @@ fun MainAppScaffold(
                                     val pdf = PdfDocumentGenerator.generateQuotationPdf(
                                         context = context,
                                         quotationWithItems = snapshot,
-                                        profile = businessProfile
+                                        profile = businessProfile,
+                                        businessName = viewModel.businesses.value.nameOf(snapshot.quotation.businessType)
                                     )
                                     viewModel.activePdfDialog.value = GeneratedPdfState(
                                         file = pdf,

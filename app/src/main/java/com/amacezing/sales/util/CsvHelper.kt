@@ -1,6 +1,8 @@
 package com.amacezing.sales.util
 
+import com.amacezing.sales.model.Business
 import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.model.ProfitRule
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentStatus
 import com.amacezing.sales.model.SalesTransaction
@@ -48,7 +50,10 @@ data class ImportPreviewSummary(
 
 object CsvHelper {
 
-    fun exportTransactionsToCsv(transactions: List<TransactionWithDetails>): String {
+    fun exportTransactionsToCsv(
+        transactions: List<TransactionWithDetails>,
+        businessNames: Map<String, String> = emptyMap()
+    ): String {
         val sb = StringBuilder()
         sb.append("Order Number,Business,Date,Customer,Line Items,Gross Sales,Discount (%),Net Sales,Estimated Profit,Amount Paid,Balance,Payment Status,Remarks\n")
         for (item in transactions) {
@@ -56,7 +61,7 @@ object CsvHelper {
             val itemsSummary = item.lineItems.joinToString(";") { "${it.productName} (x${it.quantity})" }
             val dateStr = Formatters.formatEpochMillisToDate(tx.orderDateEpochMillis)
             sb.append("\"${escapeCsv(tx.orderNumber)}\",")
-            sb.append("\"${escapeCsv(tx.businessType.displayName)}\",")
+            sb.append("\"${escapeCsv(businessNames[tx.businessType] ?: Business.fallbackName(tx.businessType))}\",")
             sb.append("\"${escapeCsv(dateStr)}\",")
             sb.append("\"${escapeCsv(tx.customerName)}\",")
             sb.append("\"${escapeCsv(itemsSummary)}\",")
@@ -103,7 +108,7 @@ object CsvHelper {
         businessType: BusinessType,
         sheetName: String,
         existingTransactions: List<TransactionWithDetails>,
-        sintraMarginPercent: Double = 58.3333
+        profitRule: ProfitRule = ProfitRule()
     ): ImportPreviewSummary {
         val lines = content.lines()
             .map { it.trim() }
@@ -122,10 +127,10 @@ object CsvHelper {
         // Product configurations for parsing
         // Engraving: Coaster (₱70/₱35), Ballpen (₱40/₱20)
         // Sintra: A4 (₱150), A3 (₱300)
-        val p1Selling = if (businessType == BusinessType.ENGRAVING) 70.0 else 150.0
-        val p1Cost = if (businessType == BusinessType.ENGRAVING) 35.0 else 62.50
-        val p2Selling = if (businessType == BusinessType.ENGRAVING) 40.0 else 300.0
-        val p2Cost = if (businessType == BusinessType.ENGRAVING) 20.0 else 125.00
+        val p1Selling = if (businessType == Business.ENGRAVING_ID) 70.0 else 150.0
+        val p1Cost = if (businessType == Business.ENGRAVING_ID) 35.0 else 62.50
+        val p2Selling = if (businessType == Business.ENGRAVING_ID) 40.0 else 300.0
+        val p2Cost = if (businessType == Business.ENGRAVING_ID) 20.0 else 125.00
 
         for (i in startIndex until lines.size) {
             val line = lines[i]
@@ -165,14 +170,13 @@ object CsvHelper {
             val excelProfit = rawProfit.toDoubleOrNull() ?: 0.0
 
             val calcResult = SalesCalculator.calculate(
-                businessType = businessType,
+                profitRule = profitRule,
                 items = listOf(
                     LineItemInput(p1Qty, p1Selling, p1Cost),
                     LineItemInput(p2Qty, p2Selling, p2Cost)
                 ),
                 discountType = DiscountType.PERCENTAGE,
-                discountValue = discountVal,
-                sintraMarginPercent = sintraMarginPercent
+                discountValue = discountVal
             )
 
             val totalDiff = if (excelTotal > 0.0) SalesCalculator.roundTo2Decimals(calcResult.netSales - excelTotal) else 0.0

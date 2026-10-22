@@ -91,8 +91,13 @@ fun TransactionsScreen(
         }
     }
 
+    val businessList = com.amacezing.sales.ui.components.LocalBusinesses.current
+
     fun shareCsvExport() {
-        val csv = CsvHelper.exportTransactionsToCsv(sortedTransactions)
+        val csv = CsvHelper.exportTransactionsToCsv(
+            sortedTransactions,
+            businessList.associate { it.id to it.name }
+        )
         val sendIntent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, csv)

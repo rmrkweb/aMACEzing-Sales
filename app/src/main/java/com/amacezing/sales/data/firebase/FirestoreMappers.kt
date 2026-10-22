@@ -24,7 +24,7 @@ object FirestoreMappers {
             id = id.toString(),
             userId = userId,
             name = name.trim().ifEmpty { "Unnamed Product" },
-            businessType = businessType.name,
+            businessType = businessType,
             sellingPrice = sellingPrice.coerceAtLeast(0.0),
             unitCost = unitCost.coerceAtLeast(0.0),
             isActive = isActive
@@ -83,7 +83,7 @@ object FirestoreMappers {
             id = id.ifBlank { UUID.randomUUID().toString() },
             userId = userId,
             orderNumber = orderNumber.trim().ifEmpty { id.ifBlank { "UNKNOWN-ORDER" } },
-            businessType = businessType.name,
+            businessType = businessType,
             customerName = customerName.trim().ifEmpty { "Walk-in Customer" },
             orderDateEpochMillis = if (orderDateEpochMillis > 0L) orderDateEpochMillis else System.currentTimeMillis(),
             discountType = discountType.name,
@@ -267,15 +267,15 @@ object FirestoreMappers {
 
     // --- Resilient Enum Parsers with Fallbacks ---
 
+    /** Business ids are free-form now; normalise legacy spellings and keep unknown ids intact. */
     fun parseBusinessType(raw: String?): BusinessType {
-        if (raw.isNullOrBlank()) return BusinessType.ENGRAVING
-        return try {
-            BusinessType.valueOf(raw.trim().uppercase())
-        } catch (_: Exception) {
-            when {
-                raw.contains("sintra", ignoreCase = true) -> BusinessType.SINTRA_BOARD
-                else -> BusinessType.ENGRAVING
-            }
+        if (raw.isNullOrBlank()) return com.amacezing.sales.model.Business.ENGRAVING_ID
+        val normalized = raw.trim().uppercase().replace(' ', '_')
+        return when {
+            normalized == com.amacezing.sales.model.Business.ENGRAVING_ID ||
+                normalized == com.amacezing.sales.model.Business.SINTRA_BOARD_ID -> normalized
+            raw.contains("sintra", ignoreCase = true) -> com.amacezing.sales.model.Business.SINTRA_BOARD_ID
+            else -> normalized
         }
     }
 

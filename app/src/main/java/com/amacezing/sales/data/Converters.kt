@@ -1,19 +1,19 @@
 package com.amacezing.sales.data
 
 import androidx.room.TypeConverter
-import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentStatus
+import com.amacezing.sales.model.ProfitMethod
 
 class Converters {
     @TypeConverter
-    fun fromBusinessType(value: BusinessType): String = value.name
+    fun fromProfitMethod(value: ProfitMethod): String = value.name
 
     @TypeConverter
-    fun toBusinessType(value: String): BusinessType = try {
-        BusinessType.valueOf(value)
+    fun toProfitMethod(value: String): ProfitMethod = try {
+        ProfitMethod.valueOf(value)
     } catch (_: Exception) {
-        BusinessType.ENGRAVING
+        ProfitMethod.UNIT_COST
     }
 
     @TypeConverter

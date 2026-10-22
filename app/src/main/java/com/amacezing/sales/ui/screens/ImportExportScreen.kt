@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.ui.components.nameOf
 import com.amacezing.sales.ui.theme.EngravingBrown
 import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.SintraBoardBlue
@@ -77,9 +78,13 @@ fun ImportExportScreen(
     val preview by viewModel.importPreview.collectAsState()
     val isImporting by viewModel.isImporting.collectAsState()
     val allTransactions by viewModel.allTransactions.collectAsState()
+    val businesses = com.amacezing.sales.ui.components.LocalBusinesses.current
 
     fun exportAllCsv() {
-        val csv = CsvHelper.exportTransactionsToCsv(allTransactions)
+        val csv = CsvHelper.exportTransactionsToCsv(
+            allTransactions,
+            businesses.associate { it.id to it.name }
+        )
         val sendIntent = Intent().apply {
             action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, csv)
@@ -160,7 +165,7 @@ fun ImportExportScreen(
                                 onClick = {
                                     viewModel.loadSampleMigration(
                                         csvContent = SampleMigrationData.ENGRAVING_2026_CSV,
-                                        businessType = BusinessType.ENGRAVING,
+                                        businessType = com.amacezing.sales.model.Business.ENGRAVING_ID,
                                         sheetName = "Engraving 2026"
                                     )
                                 },
@@ -173,7 +178,7 @@ fun ImportExportScreen(
                                 onClick = {
                                     viewModel.loadSampleMigration(
                                         csvContent = SampleMigrationData.SINTRA_BOARD_2025_CSV,
-                                        businessType = BusinessType.SINTRA_BOARD,
+                                        businessType = com.amacezing.sales.model.Business.SINTRA_BOARD_ID,
                                         sheetName = "Sintra Board 2025"
                                     )
                                 },
@@ -186,7 +191,7 @@ fun ImportExportScreen(
                                 onClick = {
                                     viewModel.loadSampleMigration(
                                         csvContent = SampleMigrationData.SINTRA_BOARD_2026_CSV,
-                                        businessType = BusinessType.SINTRA_BOARD,
+                                        businessType = com.amacezing.sales.model.Business.SINTRA_BOARD_ID,
                                         sheetName = "Sintra Board 2026"
                                     )
                                 },
@@ -208,11 +213,15 @@ fun ImportExportScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        BusinessType.values().forEach { bType ->
+                        // The workbook layouts below exist for the two original businesses only.
+                        listOf(
+                            com.amacezing.sales.model.Business.ENGRAVING_ID,
+                            com.amacezing.sales.model.Business.SINTRA_BOARD_ID
+                        ).forEach { bType ->
                             FilterChip(
                                 selected = importBusinessType == bType,
                                 onClick = { viewModel.importBusinessType.value = bType },
-                                label = { Text(bType.displayName) },
+                                label = { Text(businesses.nameOf(bType)) },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -237,7 +246,7 @@ fun ImportExportScreen(
                         onValueChange = { viewModel.importText.value = it },
                         placeholder = {
                             Text(
-                                if (importBusinessType == BusinessType.ENGRAVING)
+                                if (importBusinessType == com.amacezing.sales.model.Business.ENGRAVING_ID)
                                     "Customer,Date,Bamboo Coaster,Bamboo Ballpen,Discount %,Total,Profit,Remarks"
                                 else
                                     "Customer,Date,A4 Quantity,A3 Quantity,Discount %,Total,Profit,Remarks"

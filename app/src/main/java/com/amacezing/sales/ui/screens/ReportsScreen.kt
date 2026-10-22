@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.model.PaymentStatus
 import com.amacezing.sales.ui.components.BusinessFilterChips
+import com.amacezing.sales.ui.components.nameOf
+import com.amacezing.sales.ui.components.parseBusinessColor
 import com.amacezing.sales.ui.theme.EngravingBrown
 import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.SintraBoardBlue
@@ -69,6 +71,7 @@ fun ReportsScreen(
     val productStats by viewModel.productSalesStats.collectAsState()
     val businessComparison by viewModel.businessComparison.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val businesses = com.amacezing.sales.ui.components.LocalBusinesses.current
 
     // Customer sales summary in this period
     val customerSalesSummary = remember(filteredTransactions) {
@@ -88,7 +91,7 @@ fun ReportsScreen(
         val sb = StringBuilder()
         sb.append("A-MACEZING SALES REPORT\n")
         sb.append("Period:,${dateRangeType.label}\n")
-        sb.append("Business Filter:,${selectedBusiness?.displayName ?: "All Businesses"}\n")
+        sb.append("Business Filter:,${selectedBusiness?.let { businesses.nameOf(it) } ?: "All Businesses"}\n")
         sb.append("Generated On:,${Formatters.formatEpochMillisToDate(System.currentTimeMillis())} (Asia/Manila)\n\n")
 
         sb.append("FINANCIAL EXECUTIVE SUMMARY\n")
@@ -106,7 +109,7 @@ fun ReportsScreen(
         sb.append("PRODUCT SALES BREAKDOWN\n")
         sb.append("Product Name,Business,Units Sold,Net Sales (PHP)\n")
         for (p in productStats) {
-            sb.append("\"${p.productName}\",\"${p.businessType.displayName}\",${p.totalQuantity},${p.totalSales}\n")
+            sb.append("\"${p.productName}\",\"${businesses.nameOf(p.businessType)}\",${p.totalQuantity},${p.totalSales}\n")
         }
         sb.append("\n")
 
@@ -239,19 +242,31 @@ fun ReportsScreen(
                         )
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            Text("Metric", modifier = Modifier.weight(1.2f), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Engraving", modifier = Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = EngravingBrown)
-                            Text("Sintra Board", modifier = Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = SintraBoardBlue)
-                        }
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+                        val masked = settings.isProfitMasked
+                        Column(modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())) {
+                            Row {
+                                Text("Metric", modifier = Modifier.width(96.dp), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                businessComparison.forEach { item ->
+                                    Text(
+                                        item.business.name,
+                                        modifier = Modifier.width(104.dp),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = parseBusinessColor(item.business.colorHex),
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
 
-                        ReportComparisonRow("Net Sales", Formatters.formatCurrency(businessComparison.first.netSales), Formatters.formatCurrency(businessComparison.second.netSales))
-                        ReportComparisonRow("Profit", businessComparison.first.estimatedProfit.formatCurrency(settings.isProfitMasked), businessComparison.second.estimatedProfit.formatCurrency(settings.isProfitMasked))
-                        ReportComparisonRow("Margin %", if (settings.isProfitMasked) "••••" else Formatters.formatPercent(businessComparison.first.profitMarginPercent), if (settings.isProfitMasked) "••••" else Formatters.formatPercent(businessComparison.second.profitMarginPercent))
-                        ReportComparisonRow("Orders", "${businessComparison.first.ordersCount}", "${businessComparison.second.ordersCount}")
-                        ReportComparisonRow("Items Sold", "${businessComparison.first.totalProductsSold}", "${businessComparison.second.totalProductsSold}")
-                        ReportComparisonRow("Receivables", Formatters.formatCurrency(businessComparison.first.outstandingReceivables), Formatters.formatCurrency(businessComparison.second.outstandingReceivables))
+                            ReportComparisonRow("Net Sales", businessComparison.map { Formatters.formatCurrency(it.metrics.netSales) })
+                            ReportComparisonRow("Profit", businessComparison.map { it.metrics.estimatedProfit.formatCurrency(masked) })
+                            ReportComparisonRow("Margin %", businessComparison.map { if (masked) "••••" else Formatters.formatPercent(it.metrics.profitMarginPercent) })
+                            ReportComparisonRow("Orders", businessComparison.map { "${it.metrics.ordersCount}" })
+                            ReportComparisonRow("Items Sold", businessComparison.map { "${it.metrics.totalProductsSold}" })
+                            ReportComparisonRow("Receivables", businessComparison.map { Formatters.formatCurrency(it.metrics.outstandingReceivables) })
+                        }
                     }
                 }
             }
@@ -290,7 +305,7 @@ fun ReportsScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1.5f)) {
                                         Text(stat.productName, fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                                        Text(stat.businessType.displayName, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(businesses.nameOf(stat.businessType), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Text("${stat.totalQuantity}", modifier = Modifier.weight(0.5f), fontSize = 13.sp)
                                     Text(
@@ -399,16 +414,12 @@ private fun SummaryRow(
 @Composable
 private fun ReportComparisonRow(
     label: String,
-    val1: String,
-    val2: String
+    values: List<String>
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 3.dp)
-    ) {
-        Text(label, modifier = Modifier.weight(1.2f), fontSize = 12.sp)
-        Text(val1, modifier = Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Text(val2, modifier = Modifier.weight(1f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+    Row(modifier = Modifier.padding(vertical = 3.dp)) {
+        Text(label, modifier = Modifier.width(96.dp), fontSize = 12.sp)
+        values.forEach { value ->
+            Text(value, modifier = Modifier.width(104.dp), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        }
     }
 }

@@ -3,6 +3,8 @@ package com.amacezing.sales.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,7 +62,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.amacezing.sales.model.Business
 import com.amacezing.sales.model.BusinessType
+import com.amacezing.sales.model.ProfitRule
 import com.amacezing.sales.model.Customer
 import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.PaymentStatus
@@ -100,9 +104,7 @@ fun TransactionDialog(
     isDuplicateMode: Boolean = false,
     availableProducts: List<Product>,
     existingCustomers: List<Customer>,
-    defaultBusinessType: BusinessType = BusinessType.ENGRAVING,
-    sintraMarginPercent: Double = 58.3333,
-    sintraUseCostCalculation: Boolean = false,
+    defaultBusinessType: BusinessType? = null,
     isProfitMasked: Boolean = false,
     onSaveNew: (
         businessType: BusinessType,
@@ -130,8 +132,14 @@ fun TransactionDialog(
 ) {
     val isEditMode = initialTransaction != null && !isDuplicateMode
 
+    val businesses = LocalBusinesses.current
     var businessType by remember {
-        mutableStateOf(initialTransaction?.transaction?.businessType ?: defaultBusinessType)
+        mutableStateOf(
+            initialTransaction?.transaction?.businessType
+                ?: defaultBusinessType
+                ?: businesses.selectable().firstOrNull()?.id
+                ?: Business.ENGRAVING_ID
+        )
     }
 
     var customerName by remember {
@@ -236,14 +244,12 @@ fun TransactionDialog(
             val paidVal = initialPaymentText.toDoubleOrNull() ?: 0.0
 
             SalesCalculator.calculate(
-                businessType = businessType,
+                profitRule = businesses.findById(businessType)?.toProfitRule() ?: ProfitRule(),
                 items = items,
                 discountType = discountType,
                 discountValue = discountVal,
                 amountPaid = paidVal,
-                currentStatus = statusOverride ?: PaymentStatus.PENDING,
-                sintraMarginPercent = sintraMarginPercent,
-                sintraUseCostCalculation = sintraUseCostCalculation
+                currentStatus = statusOverride ?: PaymentStatus.PENDING
             )
         }
     }
@@ -304,10 +310,12 @@ fun TransactionDialog(
                     item {
                         Text("Business", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            BusinessType.values().forEach { bType ->
+                            businesses.selectable().map { it.id }.forEach { bType ->
                                 FilterChip(
                                     selected = businessType == bType,
                                     onClick = {
@@ -329,8 +337,8 @@ fun TransactionDialog(
                                             }
                                         }
                                     },
-                                    label = { Text(bType.displayName) },
-                                    modifier = Modifier.weight(1f).testTag("select_business_${bType.name.lowercase()}")
+                                    label = { Text(businesses.nameOf(bType)) },
+                                    modifier = Modifier.testTag("select_business_${bType.lowercase()}")
                                 )
                             }
                         }

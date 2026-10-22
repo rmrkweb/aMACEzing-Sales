@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,22 +49,21 @@ fun BusinessFilterChips(
                 leadingIcon = Icons.Default.Business,
                 modifier = Modifier.testTag("filter_chip_all_businesses")
             )
-            CompactFilterChip(
-                label = "Engraving",
-                selected = selectedBusiness == BusinessType.ENGRAVING,
-                onClick = { onSelectBusiness(BusinessType.ENGRAVING) },
-                selectedColor = AccentCyan,
-                leadingIcon = Icons.Default.Handyman,
-                modifier = Modifier.testTag("filter_chip_engraving")
-            )
-            CompactFilterChip(
-                label = "Sintra Board",
-                selected = selectedBusiness == BusinessType.SINTRA_BOARD,
-                onClick = { onSelectBusiness(BusinessType.SINTRA_BOARD) },
-                selectedColor = AccentCyan,
-                leadingIcon = Icons.Default.Print,
-                modifier = Modifier.testTag("filter_chip_sintra_board")
-            )
+            val businesses = LocalBusinesses.current
+            businesses.selectable().forEach { business ->
+                CompactFilterChip(
+                    label = business.name,
+                    selected = selectedBusiness == business.id,
+                    onClick = { onSelectBusiness(business.id) },
+                    selectedColor = parseBusinessColor(business.colorHex),
+                    leadingIcon = when (business.id) {
+                        com.amacezing.sales.model.Business.ENGRAVING_ID -> Icons.Default.Handyman
+                        com.amacezing.sales.model.Business.SINTRA_BOARD_ID -> Icons.Default.Print
+                        else -> Icons.Default.Store
+                    },
+                    modifier = Modifier.testTag("filter_chip_${business.id.lowercase()}")
+                )
+            }
         }
     }
 }
