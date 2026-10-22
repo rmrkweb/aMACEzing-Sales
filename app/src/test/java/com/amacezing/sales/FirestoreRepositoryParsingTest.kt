@@ -527,7 +527,7 @@ class FirestoreRepositoryParsingTest {
             LineItemInput(quantity = 10, unitSellingPrice = 70.0, unitCost = 35.0)
         )
         val calcResult = SalesCalculator.calculate(
-            businessType = Business.ENGRAVING_ID,
+            profitRule = Business.DEFAULTS.first { it.id == Business.ENGRAVING_ID }.toProfitRule(),
             items = lineItems,
             discountType = DiscountType.PERCENTAGE,
             discountValue = 0.0,
