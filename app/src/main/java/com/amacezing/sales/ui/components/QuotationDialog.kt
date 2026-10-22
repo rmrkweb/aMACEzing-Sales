@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -140,12 +142,15 @@ fun QuotationDialog(
     ) {
         Surface(
             modifier = Modifier
+                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing)
+                .widthIn(max = 640.dp)
                 .fillMaxWidth(0.96f)
                 .heightIn(max = 720.dp)
                 .testTag("quotation_dialog"),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(DialogDefaults.CornerRadius),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
+            border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
+            tonalElevation = 0.dp
         ) {
             Column(
                 modifier = Modifier

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -251,12 +253,15 @@ fun TransactionDialog(
     ) {
         Surface(
             modifier = Modifier
+                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing)
+                .widthIn(max = 640.dp)
                 .fillMaxWidth(0.96f)
                 .heightIn(max = 680.dp)
                 .testTag("transaction_dialog"),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(DialogDefaults.CornerRadius),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
+            tonalElevation = 0.dp
         ) {
             Column(
                 modifier = Modifier.padding(20.dp)

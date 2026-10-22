@@ -1,6 +1,7 @@
 package com.amacezing.sales.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,6 +51,9 @@ fun ProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(DialogDefaults.CornerRadius),
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
         title = {
             Text(
                 text = if (initialProduct == null) "Add New Product" else "Edit Product",
@@ -58,7 +62,7 @@ fun ProductDialog(
             )
         },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())) {
                 ExposedDropdownMenuBox(
                     expanded = businessDropdownExpanded,
                     onExpandedChange = { businessDropdownExpanded = it }

@@ -1,20 +1,16 @@
 package com.amacezing.sales.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -23,28 +19,27 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.amacezing.sales.model.PaymentStatus
 import com.amacezing.sales.model.TransactionWithDetails
+import com.amacezing.sales.ui.theme.AppBorder
 import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.StatusCancelled
 import com.amacezing.sales.ui.theme.StatusPaid
@@ -52,6 +47,7 @@ import com.amacezing.sales.ui.theme.StatusPending
 import com.amacezing.sales.util.Formatters
 import com.amacezing.sales.util.formatCurrency
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TransactionDetailDialog(
     transactionWithDetails: TransactionWithDetails,
@@ -64,316 +60,252 @@ fun TransactionDetailDialog(
     onDelete: () -> Unit
 ) {
     val tx = transactionWithDetails.transaction
+    var showDuplicateConfirm by remember { mutableStateOf(false) }
+    val canPay = tx.outstandingBalance > 0.0 && tx.paymentStatus != PaymentStatus.CANCELLED
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .heightIn(max = 680.dp)
-                .testTag("transaction_detail_dialog"),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+    AppDialog(
+        onDismiss = onDismiss,
+        modifier = Modifier.testTag("transaction_detail_dialog"),
+        header = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = tx.orderNumber,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        BusinessBadge(tx.businessType)
+                        PaymentStatusBadge(tx.paymentStatus)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = Formatters.formatEpochMillisToDate(tx.orderDateEpochMillis),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+        },
+        actions = {
+            ActionRow {
+                PrimaryActionButton(
+                    label = "Receipt",
+                    icon = Icons.Default.PictureAsPdf,
+                    onClick = onGenerateReceipt,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("generate_receipt_pdf_button")
+                )
+                SecondaryActionButton(
+                    label = "Duplicate",
+                    icon = Icons.Default.ContentCopy,
+                    onClick = { showDuplicateConfirm = true },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("duplicate_order_button")
+                )
+            }
+            ActionRow {
+                if (canPay) {
+                    PrimaryActionButton(
+                        label = "Pay",
+                        icon = Icons.Default.Payment,
+                        onClick = onRecordPayment,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("record_payment_action_button")
+                    )
+                }
+                SecondaryActionButton(
+                    label = "Edit",
+                    icon = Icons.Default.Edit,
+                    onClick = onEdit,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("edit_order_action_button")
+                )
+                OutlinedIconButton(
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .size(DialogDefaults.ButtonHeight)
+                        .testTag("delete_order_action_button"),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, StatusCancelled.copy(alpha = 0.5f))
                 ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = tx.orderNumber,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            BusinessBadge(tx.businessType)
-                        }
+                    Icon(Icons.Default.Delete, contentDescription = "Delete order", tint = StatusCancelled)
+                }
+            }
+        }
+    ) {
+        // Customer
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SectionLabel("Customer")
+            Text(
+                text = tx.customerName,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        // Products
+        Column {
+            SectionLabel("Products Ordered (${transactionWithDetails.lineItems.size})")
+            Spacer(Modifier.height(6.dp))
+            transactionWithDetails.lineItems.forEachIndexed { index, line ->
+                if (index > 0) HorizontalDivider(color = AppBorder.copy(alpha = 0.6f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(line.productName, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         Text(
-                            text = Formatters.formatEpochMillisToDate(tx.orderDateEpochMillis),
+                            "${line.quantity} × ${Formatters.formatCurrency(line.unitSellingPrice)}",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    Text(
+                        Formatters.formatCurrency(line.lineSubtotal),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+        }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        PaymentStatusBadge(tx.paymentStatus)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
-                        }
-                    }
+        // Financial summary
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, AppBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SummaryRow("Gross Sales", Formatters.formatCurrency(tx.grossSales))
+
+                if (tx.discountAmount > 0.0) {
+                    val discLabel = if (tx.discountPercentage > 0.0) {
+                        "Discount (${Formatters.formatPercent(tx.discountPercentage)})"
+                    } else "Discount"
+                    SummaryRow(
+                        label = discLabel,
+                        value = "-${Formatters.formatCurrency(tx.discountAmount)}",
+                        labelColor = SecondaryAmber,
+                        valueColor = SecondaryAmber
+                    )
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                SummaryRow(
+                    label = "Net Sales",
+                    value = Formatters.formatCurrency(tx.netSales),
+                    valueColor = MaterialTheme.colorScheme.primary,
+                    emphasized = true
+                )
 
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Customer Info
-                    item {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text("Customer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text(tx.customerName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                            }
-                        }
-                    }
+                val margin = if (tx.netSales > 0.0) (tx.estimatedProfit / tx.netSales) * 100.0 else 0.0
+                SummaryRow(
+                    label = "Estimated Profit (${if (isProfitMasked) "••••" else Formatters.formatPercent(margin)})",
+                    value = tx.estimatedProfit.formatCurrency(isProfitMasked)
+                )
 
-                    // Product Line Items
-                    item {
-                        Text("Products Ordered (${transactionWithDetails.lineItems.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            transactionWithDetails.lineItems.forEach { line ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(line.productName, fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                                        Text(
-                                            "${line.quantity} × ${Formatters.formatCurrency(line.unitSellingPrice)}",
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    Text(
-                                        Formatters.formatCurrency(line.lineSubtotal),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp), color = AppBorder)
 
-                    // Financial Summary Breakdown
-                    item {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Gross Sales:", fontSize = 12.sp)
-                                    Text(Formatters.formatCurrency(tx.grossSales), fontWeight = FontWeight.Medium, fontSize = 12.sp)
-                                }
+                SummaryRow(
+                    label = "Amount Paid",
+                    value = Formatters.formatCurrency(tx.amountPaid),
+                    valueColor = StatusPaid
+                )
+                SummaryRow(
+                    label = "Outstanding Balance",
+                    value = Formatters.formatCurrency(tx.outstandingBalance),
+                    valueColor = if (tx.outstandingBalance > 0.0) StatusPending else StatusPaid,
+                    emphasized = true
+                )
+            }
+        }
 
-                                if (tx.discountAmount > 0.0) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        val discLabel = if (tx.discountPercentage > 0.0) "Discount (${Formatters.formatPercent(tx.discountPercentage)}):" else "Discount:"
-                                        Text(discLabel, fontSize = 12.sp, color = SecondaryAmber)
-                                        Text("-${Formatters.formatCurrency(tx.discountAmount)}", fontWeight = FontWeight.Medium, fontSize = 12.sp, color = SecondaryAmber)
-                                    }
-                                }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Net Sales:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                    Text(Formatters.formatCurrency(tx.netSales), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
-                                }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    val margin = if (tx.netSales > 0.0) (tx.estimatedProfit / tx.netSales) * 100.0 else 0.0
-                                    Text("Estimated Profit (${if (isProfitMasked) "••••" else Formatters.formatPercent(margin)}):", fontSize = 12.sp)
-                                    Text(tx.estimatedProfit.formatCurrency(isProfitMasked), fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = SecondaryAmber)
-                                }
-
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Amount Paid:", fontSize = 12.sp)
-                                    Text(Formatters.formatCurrency(tx.amountPaid), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = StatusPaid)
-                                }
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text("Outstanding Balance:", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text(
-                                        Formatters.formatCurrency(tx.outstandingBalance),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = if (tx.outstandingBalance > 0.0) StatusPending else StatusPaid
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Payment Records History
-                    if (transactionWithDetails.payments.isNotEmpty()) {
-                        item {
-                            Text("Recorded Payments (${transactionWithDetails.payments.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                                    .padding(10.dp),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                transactionWithDetails.payments.forEach { pay ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(
-                                                "${pay.paymentMethod} ${if (pay.referenceNumber.isNotBlank()) "• Ref: ${pay.referenceNumber}" else ""}",
-                                                fontWeight = FontWeight.Medium,
-                                                fontSize = 12.sp
-                                            )
-                                            Text(
-                                                Formatters.formatEpochMillisToDate(pay.paymentDateEpochMillis),
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        Text(
-                                            Formatters.formatCurrency(pay.amount),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = StatusPaid
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Remarks
-                    if (tx.remarks.isNotBlank()) {
-                        item {
-                            Column {
-                                Text("Remarks & Notes", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = tx.remarks,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                // Actions
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+        // Payment history
+        if (transactionWithDetails.payments.isNotEmpty()) {
+            Column {
+                SectionLabel("Recorded Payments (${transactionWithDetails.payments.size})")
+                Spacer(Modifier.height(6.dp))
+                transactionWithDetails.payments.forEachIndexed { index, pay ->
+                    if (index > 0) HorizontalDivider(color = AppBorder.copy(alpha = 0.6f))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Button(
-                            onClick = onGenerateReceipt,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("generate_receipt_pdf_button")
-                        ) {
-                            Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Receipt", maxLines = 1)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "${pay.paymentMethod}${if (pay.referenceNumber.isNotBlank()) " • Ref: ${pay.referenceNumber}" else ""}",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                Formatters.formatEpochMillisToDate(pay.paymentDateEpochMillis),
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-
-                        OutlinedButton(
-                            onClick = onDuplicate,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("duplicate_order_button")
-                        ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Duplicate", modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Duplicate", maxLines = 1)
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (tx.outstandingBalance > 0.0 && tx.paymentStatus != PaymentStatus.CANCELLED) {
-                            Button(
-                                onClick = onRecordPayment,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("record_payment_action_button")
-                            ) {
-                                Icon(Icons.Default.Payment, contentDescription = "Pay", modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Pay", maxLines = 1)
-                            }
-                        }
-
-                        OutlinedButton(
-                            onClick = onEdit,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("edit_order_action_button")
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Edit", maxLines = 1)
-                        }
-
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier.testTag("delete_order_action_button")
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Order", tint = StatusCancelled)
-                        }
+                        Text(
+                            Formatters.formatCurrency(pay.amount),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = StatusPaid,
+                            maxLines = 1,
+                            softWrap = false
+                        )
                     }
                 }
             }
         }
+
+        // Remarks (omitted entirely when empty, so no blank section is left behind)
+        if (tx.remarks.isNotBlank()) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                SectionLabel("Remarks & Notes")
+                Text(
+                    text = tx.remarks,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+
+    if (showDuplicateConfirm) {
+        DuplicateConfirmDialog(
+            orderNumber = tx.orderNumber,
+            customerName = tx.customerName,
+            onConfirm = {
+                showDuplicateConfirm = false
+                onDuplicate()
+            },
+            onDismiss = { showDuplicateConfirm = false }
+        )
     }
 }
