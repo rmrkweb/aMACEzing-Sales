@@ -1,6 +1,7 @@
 package com.amacezing.sales.data
 
 import com.amacezing.sales.model.AppSettings
+import androidx.room.withTransaction
 import com.amacezing.sales.model.Business
 import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.model.ProfitMethod
@@ -336,6 +337,18 @@ class SalesRepository(private val database: AppDatabase) {
         val itemsWithId = lineItems.map { it.copy(quotationId = quotationId) }
         quotationDao.insertLineItems(itemsWithId)
         quotationId
+    }
+
+    /** Replaces a quotation's details and line items atomically; the number, status and links are kept. */
+    suspend fun updateQuotation(
+        quotation: com.amacezing.sales.model.Quotation,
+        lineItems: List<com.amacezing.sales.model.QuotationLineItem>
+    ) = withContext(Dispatchers.IO) {
+        database.withTransaction {
+            quotationDao.updateQuotation(quotation)
+            quotationDao.deleteLineItemsFor(quotation.id)
+            quotationDao.insertLineItems(lineItems.map { it.copy(id = 0, quotationId = quotation.id) })
+        }
     }
 
     suspend fun deleteQuotation(id: Long) = withContext(Dispatchers.IO) {

@@ -101,6 +101,8 @@ fun QuotationDialog(
     existingCustomers: List<Customer>,
     defaultValidityDays: Int = 7,
     isProfitMasked: Boolean = true,
+    /** When set, the dialog edits this quotation instead of creating a new one. */
+    initialQuotation: com.amacezing.sales.model.QuotationWithItems? = null,
     onDismiss: () -> Unit,
     onSaveQuotation: (
         businessType: BusinessType,
@@ -116,25 +118,47 @@ fun QuotationDialog(
     ) -> Unit
 ) {
     val businesses = LocalBusinesses.current
+    val initial = initialQuotation?.quotation
+    val isEditing = initialQuotation != null
     var selectedBusinessType by remember {
         mutableStateOf(
-            businesses.selectable().firstOrNull()?.id ?: ""
+            initial?.businessType ?: businesses.selectable().firstOrNull()?.id ?: ""
         )
     }
-    var customerName by remember { mutableStateOf("") }
-    var customerPhone by remember { mutableStateOf("") }
-    var customerEmail by remember { mutableStateOf("") }
-    var customerAddress by remember { mutableStateOf("") }
-    var validityDays by remember { mutableIntStateOf(defaultValidityDays) }
-    var discountType by remember { mutableStateOf(DiscountType.PERCENTAGE) }
-    var discountValueText by remember { mutableStateOf("0") }
-    var remarks by remember { mutableStateOf("") }
+    var customerName by remember { mutableStateOf(initial?.customerName ?: "") }
+    var customerPhone by remember { mutableStateOf(initial?.customerPhone ?: "") }
+    var customerEmail by remember { mutableStateOf(initial?.customerEmail ?: "") }
+    var customerAddress by remember { mutableStateOf(initial?.customerAddress ?: "") }
+    var validityText by remember { mutableStateOf((initial?.validityDays ?: defaultValidityDays).toString()) }
+    val validityDays = validityText.toIntOrNull()?.coerceAtLeast(1) ?: 7
+    var discountType by remember { mutableStateOf(initial?.discountType ?: DiscountType.PERCENTAGE) }
+    var discountValueText by remember {
+        mutableStateOf(initial?.discountValue?.toInputText() ?: "0")
+    }
+    var remarks by remember { mutableStateOf(initial?.remarks ?: "") }
 
     // Line Items State
     val lineItems = remember {
-        mutableStateListOf(
-            QuotationItemState()
-        )
+        mutableStateListOf<QuotationItemState>().apply {
+            val existing = initialQuotation?.lineItems.orEmpty()
+            if (existing.isEmpty()) {
+                add(QuotationItemState())
+            } else {
+                existing.forEach { line ->
+                    val product = availableProducts.firstOrNull { it.id == line.productId }
+                    add(
+                        QuotationItemState(
+                            productId = line.productId,
+                            productName = line.productName,
+                            quantityText = line.quantity.toString(),
+                            unitPriceText = line.unitPrice.toInputText(),
+                            unitCost = product?.unitCost ?: 0.0,
+                            notes = line.notes
+                        )
+                    )
+                }
+            }
+        }
     }
 
     var showCustomerDropdown by remember { mutableStateOf(false) }
@@ -173,7 +197,7 @@ fun QuotationDialog(
                 .widthIn(max = 640.dp)
                 .fillMaxWidth(0.96f)
                 .heightIn(max = 720.dp)
-                .testTag("quotation_dialog"),
+                .testTag(if (isEditing) "edit_quotation_dialog" else "quotation_dialog"),
             shape = RoundedCornerShape(DialogDefaults.CornerRadius),
             color = MaterialTheme.colorScheme.surface,
             border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
@@ -199,7 +223,7 @@ fun QuotationDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Generate Price Quotation",
+                            text = if (isEditing) "Edit Quotation ${initial?.quotationNumber.orEmpty()}" else "Generate Price Quotation",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -510,8 +534,8 @@ fun QuotationDialog(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     OutlinedTextField(
-                                        value = validityDays.toString(),
-                                        onValueChange = { validityDays = it.toIntOrNull() ?: 7 },
+                                        value = validityText,
+                                        onValueChange = { raw -> validityText = raw.filter { c -> c.isDigit() }.take(3) },
                                         label = { Text("Validity (Days)") },
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -665,9 +689,11 @@ fun QuotationDialog(
                             .weight(2f)
                             .testTag("submit_quotation_button")
                     ) {
-                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Generate Quotation")
+                        if (!isEditing) {
+                            Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(if (isEditing) "Save Changes" else "Generate Quotation")
                     }
                 }
             }

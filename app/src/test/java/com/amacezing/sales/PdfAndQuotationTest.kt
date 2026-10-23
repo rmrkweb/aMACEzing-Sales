@@ -266,4 +266,36 @@ class PdfAndQuotationTest {
         val afterDelete = repository.allQuotations.first()
         assertTrue(afterDelete.isEmpty())
     }
+
+    @Test
+    fun testQuotationEdit_replacesDetailsAndLines_keepsNumberAndStatus() = runBlocking {
+        val id = repository.saveQuotation(
+            Quotation(
+                quotationNumber = "QT-2026-0009",
+                businessType = Business.SINTRA_BOARD_ID,
+                customerName = "Old Name",
+                grossTotal = 500.0,
+                netTotal = 500.0,
+                status = QuotationStatus.SENT
+            ),
+            listOf(
+                QuotationLineItem(quotationId = 0, productName = "Item A", quantity = 2, unitPrice = 250.0, lineSubtotal = 500.0),
+                QuotationLineItem(quotationId = 0, productName = "Item B", quantity = 1, unitPrice = 10.0, lineSubtotal = 10.0)
+            )
+        )
+        val original = repository.getQuotationSnapshot(id)!!
+
+        repository.updateQuotation(
+            original.quotation.copy(customerName = "New Name", grossTotal = 300.0, netTotal = 300.0),
+            listOf(QuotationLineItem(quotationId = 0, productName = "Item C", quantity = 3, unitPrice = 100.0, lineSubtotal = 300.0))
+        )
+
+        val edited = repository.getQuotationSnapshot(id)!!
+        assertEquals("New Name", edited.quotation.customerName)
+        assertEquals("QT-2026-0009", edited.quotation.quotationNumber)
+        assertEquals(QuotationStatus.SENT, edited.quotation.status)
+        assertEquals(1, edited.lineItems.size)
+        assertEquals("Item C", edited.lineItems[0].productName)
+        assertEquals(300.0, edited.quotation.netTotal, 0.001)
+    }
 }

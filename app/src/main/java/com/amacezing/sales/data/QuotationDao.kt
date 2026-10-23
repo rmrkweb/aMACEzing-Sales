@@ -45,6 +45,9 @@ interface QuotationDao {
     @Delete
     suspend fun deleteQuotation(quotation: Quotation)
 
+    @Query("DELETE FROM quotation_line_items WHERE quotationId = :quotationId")
+    suspend fun deleteLineItemsFor(quotationId: Long)
+
     @Query("DELETE FROM quotations WHERE id = :id")
     suspend fun deleteQuotationById(id: Long)
 

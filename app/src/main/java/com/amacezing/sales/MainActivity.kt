@@ -258,6 +258,7 @@ fun MainAppScaffold(
     val showCustDialog by viewModel.showCustomerDialog.collectAsState()
     val editingCust by viewModel.editingCustomer.collectAsState()
     val showProdDialog by viewModel.showProductDialog.collectAsState()
+    val editingQuotation by viewModel.editingQuotation.collectAsState()
     val businessList by viewModel.businesses.collectAsState()
     val hasBusinesses = businessList.isNotEmpty()
     val editingProd by viewModel.editingProduct.collectAsState()
@@ -625,6 +626,32 @@ fun MainAppScaffold(
                 )
             }
         }
+    }
+
+    editingQuotation?.let { target ->
+        com.amacezing.sales.ui.components.QuotationDialog(
+            availableProducts = allProducts,
+            existingCustomers = allCustomers,
+            defaultValidityDays = businessProfile.quotationValidityDays,
+            isProfitMasked = settings.isProfitMasked,
+            initialQuotation = target,
+            onDismiss = { viewModel.editingQuotation.value = null },
+            onSaveQuotation = { biz, cust, phone, email, addr, validity, items, dType, dVal, rem ->
+                viewModel.updateQuotation(
+                    existing = target.quotation,
+                    businessType = biz,
+                    customerName = cust,
+                    customerPhone = phone,
+                    customerEmail = email,
+                    customerAddress = addr,
+                    validityDays = validity,
+                    lineItems = items,
+                    discountType = dType,
+                    discountValue = dVal,
+                    remarks = rem
+                )
+            }
+        )
     }
 
     if (showNewQuotationDialog && hasBusinesses) {

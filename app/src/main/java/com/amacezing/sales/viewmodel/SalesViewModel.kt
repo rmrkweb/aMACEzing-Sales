@@ -1225,6 +1225,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Quotations Management ---
     val showNewQuotationDialog = MutableStateFlow(false)
+    val editingQuotation = MutableStateFlow<com.amacezing.sales.model.QuotationWithItems?>(null)
     val activePdfDialog = MutableStateFlow<GeneratedPdfState?>(null)
 
     fun createQuotation(
@@ -1274,6 +1275,47 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             snackbarMessage.value = "Quotation $quotationNumber created successfully!"
             showNewQuotationDialog.value = false
             onComplete(id)
+        }
+    }
+
+    fun updateQuotation(
+        existing: com.amacezing.sales.model.Quotation,
+        businessType: BusinessType,
+        customerName: String,
+        customerPhone: String,
+        customerEmail: String,
+        customerAddress: String,
+        validityDays: Int,
+        lineItems: List<com.amacezing.sales.model.QuotationLineItem>,
+        discountType: DiscountType,
+        discountValue: Double,
+        remarks: String
+    ) {
+        viewModelScope.launch {
+            val grossTotal = lineItems.sumOf { it.lineSubtotal }
+            val discountAmount = when (discountType) {
+                DiscountType.PERCENTAGE -> (grossTotal * discountValue / 100.0).coerceAtLeast(0.0)
+                DiscountType.FIXED -> discountValue.coerceAtMost(grossTotal).coerceAtLeast(0.0)
+            }
+            val updated = existing.copy(
+                businessType = businessType,
+                customerName = customerName.trim(),
+                customerPhone = customerPhone.trim(),
+                customerEmail = customerEmail.trim(),
+                customerAddress = customerAddress.trim(),
+                validityDays = validityDays,
+                validUntilEpochMillis = existing.quotationDateEpochMillis + validityDays.toLong() * 24 * 60 * 60 * 1000,
+                discountType = discountType,
+                discountValue = discountValue,
+                grossTotal = grossTotal,
+                discountAmount = discountAmount,
+                netTotal = (grossTotal - discountAmount).coerceAtLeast(0.0),
+                remarks = remarks.trim(),
+                updatedAtEpochMillis = System.currentTimeMillis()
+            )
+            repository.updateQuotation(updated, lineItems)
+            snackbarMessage.value = "Quotation ${existing.quotationNumber} updated"
+            editingQuotation.value = null
         }
     }
 

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.RequestQuote
@@ -434,6 +435,15 @@ fun QuotationsScreen(
                                         Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("Convert", fontSize = 12.sp)
+                                    }
+                                }
+
+                                if (q.status != QuotationStatus.CONVERTED) {
+                                    IconButton(
+                                        onClick = { viewModel.editingQuotation.value = qWithItems },
+                                        modifier = Modifier.testTag("edit_quotation_button_${q.id}")
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit quotation")
                                     }
                                 }
 
