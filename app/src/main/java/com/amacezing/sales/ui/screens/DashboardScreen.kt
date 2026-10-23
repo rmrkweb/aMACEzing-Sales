@@ -123,7 +123,7 @@ fun DashboardScreen(
                 }
             }
 
-            // Header + filters: one coherent block (title, BUSINESS, PERIOD)
+            
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -142,67 +142,12 @@ fun DashboardScreen(
                     customEndMillis = customEndMillis,
                     onSelectType = { viewModel.setDateRangeType(it) },
                     onApplyCustomRange = { start, end -> viewModel.applyCustomDateRange(start, end) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    showLabel = false
                 )
             }
         }
-
-        // Primary metrics (equal-height rows)
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                MetricCard(
-                    title = "Net Sales",
-                    value = Formatters.formatCurrency(metrics.netSales),
-                    icon = Icons.Default.AttachMoney,
-                    iconColor = AccentCyan,
-                    subtitle = "${metrics.ordersCount} orders recorded",
-                    subtitleColor = AccentCyan,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                )
-
-                MetricCard(
-                    title = "Estimated Profit",
-                    value = metrics.estimatedProfit.formatCurrency(settings.isProfitMasked),
-                    icon = Icons.Default.ShowChart,
-                    iconColor = AccentViolet,
-                    subtitle = "Margin: ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(metrics.profitMarginPercent)}",
-                    subtitleColor = AccentViolet,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                )
-            }
-        }
-
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                MetricCard(
-                    title = "Collected Cash",
-                    value = Formatters.formatCurrency(metrics.totalCollected),
-                    icon = Icons.Default.Payments,
-                    iconColor = StatusPaid,
-                    subtitle = "Paid into account",
-                    subtitleColor = StatusPaid,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                )
-
-                MetricCard(
-                    title = "Outstanding",
-                    value = Formatters.formatCurrency(metrics.outstandingReceivables),
-                    icon = Icons.Default.Warning,
-                    iconColor = StatusPending,
-                    subtitle = "Receivables to collect",
-                    subtitleColor = StatusPending,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                )
-            }
-        }
-
-        // Secondary metrics (2 columns)
+        
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
@@ -248,6 +193,63 @@ fun DashboardScreen(
                 }
             }
         }
+        
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    title = "Net Sales",
+                    value =
+metrics.netSales.formatCurrency(settings.isProfitMasked),
+                    icon = Icons.Default.AttachMoney,
+                    iconColor = AccentViolet,
+                    subtitle = "${metrics.ordersCount} orders recorded",
+                    subtitleColor = AccentCyan,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+
+                MetricCard(
+                    title = "Estimated Profit",
+                    value = metrics.estimatedProfit.formatCurrency(settings.isProfitMasked),
+                    icon = Icons.Default.ShowChart,
+                    iconColor = AccentViolet,
+                    subtitle = "Margin: ${if (settings.isProfitMasked) "••••" else Formatters.formatPercent(metrics.profitMarginPercent)}",
+                    subtitleColor = AccentViolet,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+            }
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricCard(
+                    title = "Collected Cash",
+                    value = Formatters.formatCurrency(metrics.totalCollected),
+                    icon = Icons.Default.Payments,
+                    iconColor = StatusPaid,
+                    subtitle = "Paid into account",
+                    subtitleColor = StatusPaid,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+
+                MetricCard(
+                    title = "Outstanding",
+                    value = Formatters.formatCurrency(metrics.outstandingReceivables),
+                    icon = Icons.Default.Warning,
+                    iconColor = StatusPending,
+                    subtitle = "Receivables to collect",
+                    subtitleColor = StatusPending,
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                )
+            }
+        }
+
+
 
         // Visual Charts
             item {
