@@ -280,7 +280,8 @@ object FirestoreMappers {
             marginPercent = marginPercent,
             useUnitCostIfAvailable = useUnitCostIfAvailable,
             isActive = isActive,
-            sortOrder = sortOrder
+            sortOrder = sortOrder,
+            iconKey = iconKey
         )
 
     /** Older documents lack the newer fields; they fall back to the original defaults for that business. */
@@ -300,7 +301,8 @@ object FirestoreMappers {
             },
             useUnitCostIfAvailable = useUnitCostIfAvailable ?: default?.useUnitCostIfAvailable ?: false,
             isActive = isActive ?: true,
-            sortOrder = sortOrder ?: default?.sortOrder ?: fallbackSortOrder
+            sortOrder = sortOrder ?: default?.sortOrder ?: fallbackSortOrder,
+            iconKey = iconKey
         )
     }
 

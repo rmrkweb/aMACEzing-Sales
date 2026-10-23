@@ -73,8 +73,20 @@ fun SettingsScreen(
 
     if (showBusinessDialog) {
         val current = editingBusiness
+        var usage by remember(current?.id) {
+            mutableStateOf<com.amacezing.sales.data.SalesRepository.BusinessUsage?>(null)
+        }
+        androidx.compose.runtime.LaunchedEffect(current?.id) {
+            usage = current?.let { viewModel.getBusinessUsage(it.id) }
+        }
         com.amacezing.sales.ui.components.BusinessEditDialog(
             initial = current,
+            usage = usage,
+            onDelete = {
+                current?.let { viewModel.deleteBusiness(it) }
+                showBusinessDialog = false
+                editingBusiness = null
+            },
             nextSortOrder = (businesses.maxOfOrNull { it.sortOrder } ?: -1) + 1,
             canArchive = businesses.count { it.isActive && it.id != current?.id } > 0,
             validate = { n, p -> viewModel.validateBusiness(n, p, current?.id) },

@@ -89,6 +89,7 @@ class FirestoreBusinessRepository(
                 "useUnitCostIfAvailable" to business.useUnitCostIfAvailable,
                 "isActive" to business.isActive,
                 "sortOrder" to business.sortOrder,
+                "iconKey" to business.iconKey,
                 "createdAt" to FieldValue.serverTimestamp()
             )
             docRef.set(payload, SetOptions.merge()).await()

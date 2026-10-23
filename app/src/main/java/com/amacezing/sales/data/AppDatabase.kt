@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
         com.amacezing.sales.model.QuotationLineItem::class,
         com.amacezing.sales.model.Business::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -66,7 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
                             }
                         }
                     })
-                    .addMigrations(MIGRATION_3_4)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
@@ -113,84 +113,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        suspend fun populateInitialData(database: AppDatabase) {
-            // Seed the default businesses (no-op if they already exist)
-            database.businessDao().insertIfAbsent(com.amacezing.sales.model.Business.DEFAULTS)
+        /** v4 -> v5: businesses get an optional icon key (nullable TEXT, no default). */
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `businesses` ADD COLUMN `iconKey` TEXT")
+            }
+        }
 
+        /** Only the settings row is created on first run; no businesses, products or profile are seeded. */
+        suspend fun populateInitialData(database: AppDatabase) {
             // Seed Settings
             val settingsDao = database.settingsDao()
             if (settingsDao.getSettingsSnapshot() == null) {
                 settingsDao.insertOrUpdate(
-                    AppSettings(
-                        id = 1,
-                        businessNameEngraving = "Engraving Business",
-                        businessNameSintra = "Sintra Board Printing Business",
-                        engravingOrderPrefix = "ENG",
-                        sintraOrderPrefix = "SNT",
-                        sintraDefaultMarginPercent = 58.3333,
-                        sintraUseCostCalculation = false,
-                        currencySymbol = "₱"
-                    )
+                    AppSettings(id = 1)
                 )
-            }
-
-            // Seed Business Profile
-            val profileDao = database.businessProfileDao()
-            if (profileDao.getProfileSnapshot() == null) {
-                profileDao.insertOrUpdate(
-                    com.amacezing.sales.model.BusinessProfile(
-                        id = "active_profile",
-                        businessName = "aMACEzing Printing Services",
-                        tagline = "Precision Laser Engraving & Sintra Board Printing Solutions",
-                        ownerName = "Reymark Aguila",
-                        contactNumber = "09515853134 / 09668862186",
-                        contactEmail = "aguila.reymark@gmail.com",
-                        address = "Purok 6, Sitio Baybayin, Brgy. San Francisco, Lipa City, Batangas 4217",
-                        currency = "PHP",
-                        quotationValidityDays = 15
-                    )
-                )
-            }
-
-            // Seed Products
-            val productDao = database.productDao()
-            val initialProducts = listOf(
-                // Engraving Business Configuration
-                Product(
-                    name = "Bamboo Coaster",
-                    businessType = com.amacezing.sales.model.Business.ENGRAVING_ID,
-                    sellingPrice = 70.0,
-                    unitCost = 35.0,
-                    isActive = true
-                ),
-                Product(
-                    name = "Bamboo Ballpen",
-                    businessType = com.amacezing.sales.model.Business.ENGRAVING_ID,
-                    sellingPrice = 40.0,
-                    unitCost = 20.0,
-                    isActive = true
-                ),
-                // Sintra Board Business Configuration
-                Product(
-                    name = "Sintra Board A4 Print",
-                    businessType = com.amacezing.sales.model.Business.SINTRA_BOARD_ID,
-                    sellingPrice = 150.0,
-                    unitCost = 62.50, // 41.6667% cost corresponds to 58.3333% margin
-                    isActive = true
-                ),
-                Product(
-                    name = "Sintra Board A3 Print",
-                    businessType = com.amacezing.sales.model.Business.SINTRA_BOARD_ID,
-                    sellingPrice = 300.0,
-                    unitCost = 125.00,
-                    isActive = true
-                )
-            )
-            for (product in initialProducts) {
-                val existing = productDao.getProductByNameAndBusiness(product.name, product.businessType)
-                if (existing == null) {
-                    productDao.insertProduct(product)
-                }
             }
         }
     }

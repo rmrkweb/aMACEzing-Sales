@@ -56,11 +56,7 @@ fun BusinessFilterChips(
                     selected = selectedBusiness == business.id,
                     onClick = { onSelectBusiness(business.id) },
                     selectedColor = parseBusinessColor(business.colorHex),
-                    leadingIcon = when (business.id) {
-                        com.amacezing.sales.model.Business.ENGRAVING_ID -> Icons.Default.Handyman
-                        com.amacezing.sales.model.Business.SINTRA_BOARD_ID -> Icons.Default.Print
-                        else -> Icons.Default.Store
-                    },
+                    leadingIcon = businessIcon(business.iconKey),
                     modifier = Modifier.testTag("filter_chip_${business.id.lowercase()}")
                 )
             }

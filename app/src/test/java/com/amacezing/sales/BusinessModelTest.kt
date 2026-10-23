@@ -73,3 +73,14 @@ class BusinessCloudMappingTest {
         assertTrue(room.isActive)
     }
 }
+
+class ConvertedQuotationProfitTest {
+    @Test
+    fun zeroCostGivesFullProfitWhichIsTheBugWeFixed() {
+        val rule = Business.DEFAULTS.first { it.id == Business.ENGRAVING_ID }.toProfitRule()
+        val zero = com.amacezing.sales.util.SalesCalculator.calculateProfit(rule, 9200.0, 0.0)
+        val withCost = com.amacezing.sales.util.SalesCalculator.calculateProfit(rule, 9200.0, 200 * 20.0 + 50 * 35.0)
+        assertEquals(9200.0, zero, 0.001)
+        assertEquals(3450.0, withCost, 0.001)
+    }
+}

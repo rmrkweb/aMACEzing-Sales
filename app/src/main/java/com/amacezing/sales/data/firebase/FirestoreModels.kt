@@ -29,6 +29,7 @@ data class FirestoreBusiness(
     val useUnitCostIfAvailable: Boolean? = null,
     val isActive: Boolean? = null,
     val sortOrder: Int? = null,
+    val iconKey: String? = null,
     @ServerTimestamp val createdAt: Timestamp? = null
 )
 

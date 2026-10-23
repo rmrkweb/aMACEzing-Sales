@@ -266,3 +266,29 @@ fun ActionRow(content: @Composable RowScope.() -> Unit) {
         content = content
     )
 }
+
+/** Shown instead of a creation dialog when no business exists yet. */
+@Composable
+fun NoBusinessDialog(
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(DialogDefaults.CornerRadius),
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        title = { Text("Add a business first", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium) },
+        text = {
+            Text(
+                "Orders, products and quotations belong to a business. Create your first one in Settings.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        confirmButton = {
+            PrimaryActionButton(label = "Open Settings", onClick = onOpenSettings)
+        },
+        dismissButton = { DismissActionButton(label = "Close", onClick = onDismiss) }
+    )
+}

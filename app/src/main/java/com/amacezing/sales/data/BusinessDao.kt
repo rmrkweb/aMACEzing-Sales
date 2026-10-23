@@ -24,6 +24,18 @@ interface BusinessDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(business: Business)
 
+    @Query("DELETE FROM businesses WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE businessType = :id")
+    suspend fun countTransactions(id: String): Int
+
+    @Query("SELECT COUNT(*) FROM products WHERE businessType = :id")
+    suspend fun countProducts(id: String): Int
+
+    @Query("SELECT COUNT(*) FROM quotations WHERE businessType = :id")
+    suspend fun countQuotations(id: String): Int
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(businesses: List<Business>)
 }

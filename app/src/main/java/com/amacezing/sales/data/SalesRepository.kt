@@ -54,6 +54,26 @@ class SalesRepository(private val database: AppDatabase) {
         businessDao.upsert(business)
     }
 
+    /** How many records still point at a business; a business can only be deleted when all are zero. */
+    data class BusinessUsage(val transactions: Int, val products: Int, val quotations: Int) {
+        val isUnused: Boolean get() = transactions == 0 && products == 0 && quotations == 0
+    }
+
+    suspend fun getBusinessUsage(id: String): BusinessUsage = withContext(Dispatchers.IO) {
+        BusinessUsage(
+            transactions = businessDao.countTransactions(id),
+            products = businessDao.countProducts(id),
+            quotations = businessDao.countQuotations(id)
+        )
+    }
+
+    /** Deletes the business only if nothing refers to it; returns false (and deletes nothing) otherwise. */
+    suspend fun deleteBusinessIfUnused(id: String): Boolean = withContext(Dispatchers.IO) {
+        if (!getBusinessUsage(id).isUnused) return@withContext false
+        businessDao.deleteById(id)
+        true
+    }
+
     /**
      * Creates a placeholder business for any id that orders/products refer to but that has no row
      * (e.g. records restored from the cloud on a fresh install), so nothing becomes unreachable.
@@ -469,7 +489,8 @@ class SalesRepository(private val database: AppDatabase) {
         }
     }
 
-    suspend fun seedInitialCatalogIfEmpty() {
+    /** Creates the settings row on first run. Nothing else (businesses, products, profile) is seeded. */
+    suspend fun ensureDefaultSettings() {
         withContext(Dispatchers.IO) {
             AppDatabase.populateInitialData(database)
         }

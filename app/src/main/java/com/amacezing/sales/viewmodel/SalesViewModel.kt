@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -157,7 +158,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val businesses: StateFlow<List<com.amacezing.sales.model.Business>> = repository.allBusinesses
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.amacezing.sales.model.Business.DEFAULTS)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Profit rule for a business id; unknown ids behave like unit-cost businesses. */
     fun profitRuleFor(businessId: String): com.amacezing.sales.model.ProfitRule =
@@ -183,7 +184,67 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
-            repository.seedInitialCatalogIfEmpty()
+            repository.ensureDefaultSettings()
+            repairConvertedQuotationCosts()
+        }
+    }
+
+    /**
+     * Orders converted from a quotation before costs were carried over have zero cost on every line, so
+     * they showed 100% profit. Fills in each line's cost from the catalog (by product id, then by name
+     * within the business) and recomputes profit. Idempotent: lines that already have a cost, or whose
+     * product has no cost on file, are left untouched, so it does nothing once the data is correct.
+     */
+    private suspend fun repairConvertedQuotationCosts() {
+        try {
+            val catalog = repository.getProductsSnapshot()
+            val transactions = repository.allTransactions.first()
+            var repaired = 0
+            for (item in transactions) {
+                val tx = item.transaction
+                if (tx.paymentStatus == PaymentStatus.CANCELLED || !tx.remarks.startsWith("Converted from quotation")) continue
+                if (item.lineItems.none { it.unitCost <= 0.0 }) continue
+
+                var changed = false
+                val fixedLines = item.lineItems.map { line ->
+                    if (line.unitCost > 0.0) return@map line
+                    val product = catalog.firstOrNull { it.id == line.productId }
+                        ?: catalog.firstOrNull {
+                            it.businessType == tx.businessType && it.name.equals(line.productName.trim(), ignoreCase = true)
+                        }
+                    val cost = product?.unitCost ?: 0.0
+                    if (cost > 0.0) {
+                        changed = true
+                        line.copy(unitCost = cost)
+                    } else line
+                }
+                if (!changed) continue
+
+                val calc = SalesCalculator.calculate(
+                    profitRule = profitRuleFor(tx.businessType),
+                    items = fixedLines.map { LineItemInput(it.quantity, it.unitSellingPrice, it.unitCost) },
+                    discountType = tx.discountType,
+                    discountValue = if (tx.discountType == DiscountType.PERCENTAGE) tx.discountPercentage else tx.discountAmount,
+                    amountPaid = tx.amountPaid,
+                    currentStatus = tx.paymentStatus
+                )
+                val updated = tx.copy(
+                    estimatedProfit = calc.estimatedProfit,
+                    totalProductCost = calc.totalProductCost
+                )
+                repository.updateTransaction(updated, fixedLines.map { it.copy(id = 0) })
+                try {
+                    pushTransactionToCloud(updated.id)
+                } catch (_: Exception) {
+                    // Offline: the next full sync uploads it.
+                }
+                repaired++
+            }
+            if (repaired > 0) {
+                snackbarMessage.value = "Fixed profit on $repaired order${if (repaired == 1) "" else "s"} converted from quotations"
+            }
+        } catch (_: Exception) {
+            // Never block startup on a repair.
         }
     }
 
@@ -780,6 +841,24 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         return "${base}_$n"
     }
 
+    suspend fun getBusinessUsage(id: String): SalesRepository.BusinessUsage = repository.getBusinessUsage(id)
+
+    /** Deletes a business that nothing refers to, locally and in the cloud. */
+    fun deleteBusiness(business: com.amacezing.sales.model.Business) {
+        viewModelScope.launch {
+            if (!repository.deleteBusinessIfUnused(business.id)) {
+                snackbarMessage.value = "${business.name} is still used by existing records. Archive it instead."
+                return@launch
+            }
+            try {
+                firestoreRepo.deleteBusiness(business.id.lowercase())
+            } catch (_: Exception) {
+                // Offline: the local delete stands; a later full sync does not re-create it.
+            }
+            snackbarMessage.value = "${business.name} deleted"
+        }
+    }
+
     fun saveBusiness(business: com.amacezing.sales.model.Business) {
         viewModelScope.launch {
             repository.saveBusiness(business)
@@ -931,8 +1010,6 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             step = "users/$uid (profile)"
             firestoreRepo.saveUserProfile()
             step = "users/$uid/businesses"
-            firestoreRepo.seedDefaultBusinessesIfEmpty()
-
             val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
 
             // Businesses go first so every order/product they own has its business in the cloud.
@@ -1224,11 +1301,18 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             val q = quotationWithItems.quotation
             val items = quotationWithItems.lineItems
 
+            // Quotation lines don't store a cost, so take it from the catalog product (by id, then by
+            // name within the business). Without it every converted order showed 100% profit.
+            val catalog = repository.getProductsSnapshot()
             val convertedLineItems = items.map { item ->
+                val product = catalog.firstOrNull { it.id == item.productId }
+                    ?: catalog.firstOrNull {
+                        it.businessType == q.businessType && it.name.equals(item.productName.trim(), ignoreCase = true)
+                    }
                 LineItemInput(
                     quantity = item.quantity,
                     unitSellingPrice = item.unitPrice,
-                    unitCost = 0.0
+                    unitCost = product?.unitCost ?: 0.0
                 )
             }
             val productInfos = items.map { item ->

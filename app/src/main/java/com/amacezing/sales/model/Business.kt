@@ -31,7 +31,9 @@ data class Business(
     /** FIXED_MARGIN only: use real unit costs when the order has them (legacy Sintra toggle). */
     val useUnitCostIfAvailable: Boolean,
     val isActive: Boolean,
-    val sortOrder: Int
+    val sortOrder: Int,
+    /** Key into the app's icon set (see BusinessIcons); null means the default store icon. */
+    val iconKey: String? = null
 ) {
     fun toProfitRule(): ProfitRule = ProfitRule(profitMethod, marginPercent, useUnitCostIfAvailable)
 
@@ -39,6 +41,10 @@ data class Business(
         const val ENGRAVING_ID = "ENGRAVING"
         const val SINTRA_BOARD_ID = "SINTRA_BOARD"
 
+        /**
+         * The two businesses the app originally shipped with. NOT seeded any more: they exist only so
+         * data from older backups/installs that refer to them still maps to sensible names, colours and rules.
+         */
         val DEFAULTS: List<Business> = listOf(
             Business(
                 id = ENGRAVING_ID,

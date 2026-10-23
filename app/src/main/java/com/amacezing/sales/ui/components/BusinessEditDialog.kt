@@ -52,6 +52,8 @@ fun BusinessEditDialog(
     initial: Business?,
     nextSortOrder: Int,
     canArchive: Boolean,
+    usage: com.amacezing.sales.data.SalesRepository.BusinessUsage?,
+    onDelete: () -> Unit,
     validate: (name: String, prefix: String) -> String?,
     newId: (name: String) -> String,
     onSave: (Business) -> Unit,
@@ -66,6 +68,8 @@ fun BusinessEditDialog(
             initial?.marginPercent?.takeIf { it > 0.0 }?.let { "%.2f".format(it).trimEnd('0').trimEnd('.') } ?: ""
         )
     }
+    var iconKey by remember { mutableStateOf(initial?.iconKey) }
+    var confirmDelete by remember { mutableStateOf(false) }
     var useCost by remember { mutableStateOf(initial?.useUnitCostIfAvailable ?: false) }
     var active by remember { mutableStateOf(initial?.isActive ?: true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -96,7 +100,8 @@ fun BusinessEditDialog(
                 marginPercent = margin,
                 useUnitCostIfAvailable = method == ProfitMethod.FIXED_MARGIN && useCost,
                 isActive = if (initial == null) true else active,
-                sortOrder = initial?.sortOrder ?: nextSortOrder
+                sortOrder = initial?.sortOrder ?: nextSortOrder,
+                iconKey = iconKey
             )
         )
     }
@@ -168,27 +173,16 @@ fun BusinessEditDialog(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionLabel("Accent colour")
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                BusinessColorPalette.forEach { hex ->
-                    val selected = hex.equals(colorHex, ignoreCase = true)
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(parseBusinessColor(hex))
-                            .clickable { colorHex = hex }
-                            .semantics { contentDescription = "Colour $hex${if (selected) ", selected" else ""}" },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (selected) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = androidx.compose.ui.graphics.Color.Black)
-                        }
-                    }
-                }
-            }
+            BusinessColorPicker(colorHex = colorHex, onColorChange = { colorHex = it })
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SectionLabel("Icon")
+            BusinessIconPicker(
+                selectedKey = iconKey,
+                tint = parseBusinessColor(colorHex),
+                onSelect = { iconKey = it }
+            )
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -266,5 +260,37 @@ fun BusinessEditDialog(
                 )
             }
         }
+
+        if (initial != null && usage != null) {
+            if (usage.isUnused) {
+                SecondaryActionButton(
+                    label = "Delete business",
+                    onClick = { confirmDelete = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("delete_business_button")
+                )
+            } else {
+                val parts = buildList {
+                    if (usage.transactions > 0) add("${usage.transactions} order${if (usage.transactions == 1) "" else "s"}")
+                    if (usage.products > 0) add("${usage.products} product${if (usage.products == 1) "" else "s"}")
+                    if (usage.quotations > 0) add("${usage.quotations} quotation${if (usage.quotations == 1) "" else "s"}")
+                }
+                Text(
+                    "Can't be deleted: it is used by ${parts.joinToString(", ")}. Archive it instead to hide it from new records.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+
+    if (confirmDelete && initial != null) {
+        ConfirmDeleteDialog(
+            title = "Delete Business?",
+            message = "Delete ${initial.name}? Nothing uses it, so no records are affected. This can't be undone.",
+            onConfirm = { confirmDelete = false; onDelete() },
+            onDismiss = { confirmDelete = false }
+        )
     }
 }

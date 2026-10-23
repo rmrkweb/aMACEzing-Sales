@@ -48,7 +48,7 @@ fun ProductDialog(
             initialProduct?.businessType
                 ?: defaultBusinessType
                 ?: businesses.selectable().firstOrNull()?.id
-                ?: com.amacezing.sales.model.Business.ENGRAVING_ID
+                ?: ""
         )
     }
     var businessDropdownExpanded by remember { mutableStateOf(false) }

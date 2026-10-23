@@ -71,17 +71,28 @@ import com.amacezing.sales.model.DiscountType
 import com.amacezing.sales.model.Product
 import com.amacezing.sales.model.QuotationLineItem
 import com.amacezing.sales.util.Formatters
+import com.amacezing.sales.util.formatCurrency
 
+/**
+ * One editable quotation line. Quantity and price are kept as the text the user typed, so a field
+ * can be cleared completely while typing; blank or invalid text counts as 0 for calculations.
+ */
 data class QuotationItemState(
-    var productId: Long? = null,
-    var productName: String = "",
-    var quantity: Int = 1,
-    var unitPrice: Double = 0.0,
-    var notes: String = ""
+    val productId: Long? = null,
+    val productName: String = "",
+    val quantityText: String = "1",
+    val unitPriceText: String = "",
+    /** Cost of the picked catalog product, used only for the profit estimate. */
+    val unitCost: Double = 0.0,
+    val notes: String = ""
 ) {
-    val subtotal: Double
-        get() = quantity * unitPrice
+    val quantity: Int get() = quantityText.toIntOrNull() ?: 0
+    val unitPrice: Double get() = unitPriceText.toDoubleOrNull() ?: 0.0
+    val subtotal: Double get() = quantity * unitPrice
 }
+
+private fun Double.toInputText(): String =
+    if (this == Math.floor(this) && !this.isInfinite()) this.toLong().toString() else this.toString()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +100,7 @@ fun QuotationDialog(
     availableProducts: List<Product>,
     existingCustomers: List<Customer>,
     defaultValidityDays: Int = 7,
+    isProfitMasked: Boolean = true,
     onDismiss: () -> Unit,
     onSaveQuotation: (
         businessType: BusinessType,
@@ -106,7 +118,7 @@ fun QuotationDialog(
     val businesses = LocalBusinesses.current
     var selectedBusinessType by remember {
         mutableStateOf(
-            businesses.selectable().firstOrNull()?.id ?: com.amacezing.sales.model.Business.ENGRAVING_ID
+            businesses.selectable().firstOrNull()?.id ?: ""
         )
     }
     var customerName by remember { mutableStateOf("") }
@@ -121,7 +133,7 @@ fun QuotationDialog(
     // Line Items State
     val lineItems = remember {
         mutableStateListOf(
-            QuotationItemState(productName = "", quantity = 1, unitPrice = 0.0)
+            QuotationItemState()
         )
     }
 
@@ -139,6 +151,14 @@ fun QuotationDialog(
         DiscountType.FIXED -> discountVal.coerceAtMost(grossTotal).coerceAtLeast(0.0)
     }
     val netTotal = (grossTotal - discountAmount).coerceAtLeast(0.0)
+
+    // Estimated profit uses the same rule as a real order for the chosen business.
+    val profitRule = businesses.findById(selectedBusinessType)?.toProfitRule() ?: com.amacezing.sales.model.ProfitRule()
+    val billableItems = lineItems.filter { it.productName.isNotBlank() && it.quantity > 0 }
+    val totalCost = billableItems.sumOf { it.quantity * it.unitCost }
+    val estimatedProfit = com.amacezing.sales.util.SalesCalculator.calculateProfit(profitRule, netTotal, totalCost)
+    val missingCost = profitRule.method == com.amacezing.sales.model.ProfitMethod.UNIT_COST &&
+        billableItems.any { it.unitCost <= 0.0 }
 
     val isFormValid = customerName.trim().isNotBlank() &&
             lineItems.any { it.productName.trim().isNotBlank() && it.quantity > 0 && it.unitPrice >= 0 }
@@ -332,7 +352,7 @@ fun QuotationDialog(
 
                             TextButton(
                                 onClick = {
-                                    lineItems.add(QuotationItemState(productName = "", quantity = 1, unitPrice = 0.0))
+                                    lineItems.add(QuotationItemState())
                                 },
                                 modifier = Modifier.testTag("add_quotation_item_button")
                             ) {
@@ -389,9 +409,12 @@ fun QuotationDialog(
                                                                 }
                                                             },
                                                             onClick = {
-                                                                itemState.productId = prod.id
-                                                                itemState.productName = prod.name
-                                                                itemState.unitPrice = prod.sellingPrice
+                                                                lineItems[index] = itemState.copy(
+                                                                    productId = prod.id,
+                                                                    productName = prod.name,
+                                                                    unitPriceText = prod.sellingPrice.toInputText(),
+                                                                    unitCost = prod.unitCost
+                                                                )
                                                                 showProductPicker = false
                                                             }
                                                         )
@@ -416,9 +439,13 @@ fun QuotationDialog(
                                 OutlinedTextField(
                                     value = itemState.productName,
                                     onValueChange = {
-                                        itemState.productName = it
-                                        // trigger recomposition
-                                        lineItems[index] = itemState.copy(productName = it)
+                                        // A typed name that matches a catalog product picks up its cost for the estimate.
+                                        val match = filteredProducts.firstOrNull { p -> p.name.equals(it.trim(), ignoreCase = true) }
+                                        lineItems[index] = itemState.copy(
+                                            productName = it,
+                                            productId = match?.id,
+                                            unitCost = match?.unitCost ?: 0.0
+                                        )
                                     },
                                     label = { Text("Product / Service Description *") },
                                     modifier = Modifier.fillMaxWidth(),
@@ -433,22 +460,23 @@ fun QuotationDialog(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     OutlinedTextField(
-                                        value = itemState.quantity.toString(),
-                                        onValueChange = {
-                                            val q = it.toIntOrNull() ?: 1
-                                            lineItems[index] = itemState.copy(quantity = q)
+                                        value = itemState.quantityText,
+                                        onValueChange = { raw ->
+                                            lineItems[index] = itemState.copy(quantityText = raw.filter { c -> c.isDigit() }.take(6))
                                         },
+                                        singleLine = true,
                                         label = { Text("Qty") },
                                         modifier = Modifier.weight(1f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                                     )
 
                                     OutlinedTextField(
-                                        value = itemState.unitPrice.toString(),
-                                        onValueChange = {
-                                            val p = it.toDoubleOrNull() ?: 0.0
-                                            lineItems[index] = itemState.copy(unitPrice = p)
+                                        value = itemState.unitPriceText,
+                                        onValueChange = { raw ->
+                                            val cleaned = raw.filterIndexed { i, c -> c.isDigit() || (c == '.' && raw.indexOf('.') == i) }.take(10)
+                                            lineItems[index] = itemState.copy(unitPriceText = cleaned)
                                         },
+                                        singleLine = true,
                                         label = { Text("Unit Price (₱)") },
                                         modifier = Modifier.weight(1.5f),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
@@ -561,6 +589,28 @@ fun QuotationDialog(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 18.sp,
                                         color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("quotation_estimated_profit"),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Estimated Profit:", fontSize = 13.sp)
+                                    Text(
+                                        estimatedProfit.formatCurrency(isProfitMasked),
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                                if (missingCost && !isProfitMasked) {
+                                    Text(
+                                        "Some items have no cost on file, so profit may be overstated.",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }

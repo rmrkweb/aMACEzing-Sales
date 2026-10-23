@@ -258,6 +258,8 @@ fun MainAppScaffold(
     val showCustDialog by viewModel.showCustomerDialog.collectAsState()
     val editingCust by viewModel.editingCustomer.collectAsState()
     val showProdDialog by viewModel.showProductDialog.collectAsState()
+    val businessList by viewModel.businesses.collectAsState()
+    val hasBusinesses = businessList.isNotEmpty()
     val editingProd by viewModel.editingProduct.collectAsState()
     val itemToDelete by viewModel.itemToDelete.collectAsState()
 
@@ -440,8 +442,27 @@ fun MainAppScaffold(
         }
     }
 
+    // Creating orders, products or quotations needs at least one business to attach them to.
+    if (!hasBusinesses && (showNewTxDialog || showNewQuotationDialog || showProdDialog)) {
+        com.amacezing.sales.ui.components.NoBusinessDialog(
+            onOpenSettings = {
+                viewModel.showNewTransactionDialog.value = false
+                viewModel.showNewQuotationDialog.value = false
+                viewModel.showProductDialog.value = false
+                viewModel.editingProduct.value = null
+                viewModel.navigateTo(Screen.SETTINGS)
+            },
+            onDismiss = {
+                viewModel.showNewTransactionDialog.value = false
+                viewModel.showNewQuotationDialog.value = false
+                viewModel.showProductDialog.value = false
+                viewModel.editingProduct.value = null
+            }
+        )
+    }
+
     // Modal Dialogs
-    if (showNewTxDialog) {
+    if (showNewTxDialog && hasBusinesses) {
         TransactionDialog(
             initialTransaction = null,
             availableProducts = allProducts,
@@ -566,7 +587,7 @@ fun MainAppScaffold(
         )
     }
 
-    if (showProdDialog) {
+    if (showProdDialog && hasBusinesses) {
         ProductDialog(
             initialProduct = editingProd,
             onSave = { viewModel.saveProduct(it) },
@@ -606,11 +627,12 @@ fun MainAppScaffold(
         }
     }
 
-    if (showNewQuotationDialog) {
+    if (showNewQuotationDialog && hasBusinesses) {
         QuotationDialog(
             availableProducts = allProducts,
             existingCustomers = allCustomers,
             defaultValidityDays = businessProfile.quotationValidityDays,
+            isProfitMasked = settings.isProfitMasked,
             onDismiss = { viewModel.showNewQuotationDialog.value = false },
             onSaveQuotation = { biz, cust, phone, email, addr, validity, items, dType, dVal, rem ->
                 viewModel.createQuotation(

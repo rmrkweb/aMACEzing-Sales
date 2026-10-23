@@ -138,7 +138,7 @@ fun TransactionDialog(
             initialTransaction?.transaction?.businessType
                 ?: defaultBusinessType
                 ?: businesses.selectable().firstOrNull()?.id
-                ?: Business.ENGRAVING_ID
+                ?: ""
         )
     }
 
