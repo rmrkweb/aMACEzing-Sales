@@ -234,9 +234,7 @@ fun SettingsScreen(
                 }
             }
 
-            item {
-                com.amacezing.sales.update.UpdateSettingsCard()
-            }
+            
 
             
 
