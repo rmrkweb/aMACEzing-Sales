@@ -1,5 +1,8 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.graphics.luminance
@@ -54,9 +57,43 @@ object DialogDefaults {
     val CornerRadius = 22.dp
     val ContentPadding = 20.dp
     val SectionSpacing = 16.dp
-    val ButtonHeight = 48.dp
+    val ButtonHeight = 40.dp
     val MaxWidth = 560.dp
     val ScreenMargin = 16.dp
+}
+
+/**
+ * Window wrapper for every custom dialog. Keeps the dialog inside the safe area (status bar,
+ * display cutout, keyboard and the phone's navigation bar) so a tall dialog is capped to the
+ * visible height and its bottom buttons never slide under the system navigation bar.
+ * The window is edge-to-edge so the insets are actually reported; if a device still reports no
+ * navigation-bar inset, a fixed guard keeps the bottom clear anyway.
+ */
+@Composable
+fun DialogWindow(
+    onDismiss: () -> Unit,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        val navBottom = WindowInsets.navigationBars.getBottom(LocalDensity.current)
+        val bottomGuard = if (navBottom == 0) 40.dp else 0.dp
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(
+                    start = DialogDefaults.ScreenMargin,
+                    end = DialogDefaults.ScreenMargin,
+                    top = 24.dp,
+                    bottom = 24.dp + bottomGuard
+                ),
+            contentAlignment = Alignment.Center,
+            content = content
+        )
+    }
 }
 
 /**
@@ -73,15 +110,9 @@ fun AppDialog(
     actions: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    DialogWindow(onDismiss = onDismiss) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = DialogDefaults.ScreenMargin, vertical = 24.dp),
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Surface(
@@ -172,18 +203,9 @@ fun SummaryRow(
     }
 }
 
-private val ActionContentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
-private val CompactContentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-private val CompactButtonHeight = 36.dp
-
-/** Gray pill background shared by every dialog action (dark and light themes). */
-@Composable
-private fun dialogPillContainer(): Color =
-    if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color(0xFF2C3645) else Color(0xFFE2E8F0)
-
 /**
- * The single dialog action style: rounded pill, gray background, icon + label.
- * Every dialog button below only differs by content color (cyan, red, muted).
+ * The single dialog action style: the shared gray pill ([PillButton]), icon + label, slightly
+ * larger than card actions. Buttons below only differ by content color (cyan, red, muted).
  */
 @Composable
 private fun DialogPillButton(
@@ -195,32 +217,18 @@ private fun DialogPillButton(
     enabled: Boolean,
     compact: Boolean = false
 ) {
-    val container = dialogPillContainer()
-    Button(
+    PillButton(
+        label = label,
+        icon = icon,
         onClick = onClick,
+        contentColor = contentColor,
+        modifier = modifier,
         enabled = enabled,
-        modifier = modifier.heightIn(min = if (compact) CompactButtonHeight else DialogDefaults.ButtonHeight),
-        shape = CircleShape,
-        contentPadding = if (compact) CompactContentPadding else ActionContentPadding,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = container,
-            contentColor = contentColor,
-            disabledContainerColor = container.copy(alpha = 0.5f),
-            disabledContentColor = contentColor.copy(alpha = 0.38f)
-        )
-    ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 16.dp else 18.dp))
-            Spacer(Modifier.size(6.dp))
-        }
-        Text(
-            label,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = if (compact) 12.sp else 14.sp
-        )
-    }
+        height = if (compact) 32.dp else DialogDefaults.ButtonHeight,
+        horizontalPadding = if (compact) 10.dp else 12.dp,
+        iconSize = if (compact) 14.dp else 16.dp,
+        fontSize = if (compact) 12.sp else 13.sp
+    )
 }
 
 /** Main action (Save, Pay, Receipt...). Gray pill, cyan icon + label. */
@@ -271,7 +279,7 @@ fun DismissActionButton(
 fun ActionRow(content: @Composable RowScope.() -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = content
     )

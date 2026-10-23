@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -203,14 +204,11 @@ private fun DateRangeSelectionDialog(
     // Only one date picked = a single-day range.
     val endDate = (endMillis ?: startMillis)?.pickerMillisToLocalDate()
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    DialogWindow(onDismiss = onDismiss) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.92f)
+                .fillMaxWidth()
+                .heightIn(max = 760.dp)
                 .testTag("date_range_dialog"),
             shape = RoundedCornerShape(24.dp),
             color = AppSurfaceElevated,

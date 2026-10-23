@@ -306,13 +306,10 @@ fun CustomersScreen(
                 .sortedByDescending { it.transaction.orderDateEpochMillis }
         }
 
-        Dialog(
-            onDismissRequest = { selectedCustomerForHistory = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
+        com.amacezing.sales.ui.components.DialogWindow(onDismiss = { selectedCustomerForHistory = null }) {
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth(0.95f)
+                    .fillMaxWidth()
                     .heightIn(max = 620.dp),
                 shape = RoundedCornerShape(20.dp),
                 color = MaterialTheme.colorScheme.surface,

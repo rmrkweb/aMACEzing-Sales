@@ -255,13 +255,9 @@ fun TransactionDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    DialogWindow(onDismiss = onDismiss) {
         Surface(
             modifier = Modifier
-                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing)
                 .widthIn(max = 640.dp)
                 .fillMaxWidth(0.96f)
                 .heightIn(max = 680.dp)

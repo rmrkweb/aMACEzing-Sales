@@ -105,13 +105,10 @@ fun PdfPreviewDialog(
         }
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    DialogWindow(onDismiss = onDismiss) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth()
                 .heightIn(max = 720.dp)
                 .testTag("pdf_preview_dialog"),
             shape = RoundedCornerShape(24.dp),

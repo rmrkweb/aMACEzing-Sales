@@ -188,13 +188,9 @@ fun QuotationDialog(
     val isFormValid = customerName.trim().isNotBlank() &&
             lineItems.any { it.productName.trim().isNotBlank() && it.quantity > 0 && it.unitPrice >= 0 }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    DialogWindow(onDismiss = onDismiss) {
         Surface(
             modifier = Modifier
-                .windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.safeDrawing)
                 .widthIn(max = 640.dp)
                 .fillMaxWidth(0.96f)
                 .heightIn(max = 720.dp)
