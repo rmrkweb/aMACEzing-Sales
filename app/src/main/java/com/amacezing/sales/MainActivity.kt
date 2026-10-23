@@ -374,7 +374,7 @@ fun MainAppScaffold(
                     Screen.QUOTATIONS,
                     Screen.TRANSACTIONS,
                     Screen.PRODUCTS,
-                    Screen.PROFILE
+                    Screen.SETTINGS
                 )
                 val violet = com.amacezing.sales.ui.theme.AccentViolet
                 val muted = com.amacezing.sales.ui.theme.AppTextSecondary
