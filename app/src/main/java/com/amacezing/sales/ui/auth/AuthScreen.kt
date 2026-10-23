@@ -381,11 +381,11 @@ Spacer(modifier = Modifier.height(18.dp))
                             )
 
                             // Feature 2: Multiple Businesses in One App
-AuthFeatureItem(
-    icon = Icons.Default.Storefront,
-    title = "All Your Businesses in One App",
-    description = "Add as many businesses as you need, each tracked independently."
-)
+                            AuthFeatureItem(
+                                icon = Icons.Default.Storefront,
+                                title = "All Your Businesses in One App",
+                                description = "Add as many businesses as you need, each tracked independently."
+                            )
 
                             // Feature 3: Secure Business Data
                             AuthFeatureItem(
