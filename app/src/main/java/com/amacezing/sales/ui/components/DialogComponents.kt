@@ -1,6 +1,12 @@
 package com.amacezing.sales.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -166,95 +172,99 @@ fun SummaryRow(
     }
 }
 
-private val ActionContentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
-private val ActionShape = RoundedCornerShape(12.dp)
+private val ActionContentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+private val CompactContentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+private val CompactButtonHeight = 36.dp
 
+/** Gray pill background shared by every dialog action (dark and light themes). */
 @Composable
-private fun ActionContent(icon: ImageVector?, label: String, iconDescription: String?) {
-    if (icon != null) {
-        Icon(icon, contentDescription = iconDescription, modifier = Modifier.size(18.dp))
-        androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+private fun dialogPillContainer(): Color =
+    if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Color(0xFF2C3645) else Color(0xFFE2E8F0)
+
+/**
+ * The single dialog action style: rounded pill, gray background, icon + label.
+ * Every dialog button below only differs by content color (cyan, red, muted).
+ */
+@Composable
+private fun DialogPillButton(
+    label: String,
+    icon: ImageVector?,
+    onClick: () -> Unit,
+    contentColor: Color,
+    modifier: Modifier,
+    enabled: Boolean,
+    compact: Boolean = false
+) {
+    val container = dialogPillContainer()
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier.heightIn(min = if (compact) CompactButtonHeight else DialogDefaults.ButtonHeight),
+        shape = CircleShape,
+        contentPadding = if (compact) CompactContentPadding else ActionContentPadding,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = container,
+            contentColor = contentColor,
+            disabledContainerColor = container.copy(alpha = 0.5f),
+            disabledContentColor = contentColor.copy(alpha = 0.38f)
+        )
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(if (compact) 16.dp else 18.dp))
+            Spacer(Modifier.size(6.dp))
+        }
+        Text(
+            label,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = if (compact) 12.sp else 14.sp
+        )
     }
-    Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
 }
 
-/** Filled cyan action. */
+/** Main action (Save, Pay, Receipt...). Gray pill, cyan icon + label. */
 @Composable
 fun PrimaryActionButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    enabled: Boolean = true
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.heightIn(min = DialogDefaults.ButtonHeight),
-        shape = ActionShape,
-        contentPadding = ActionContentPadding,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
-        )
-    ) { ActionContent(icon, label, null) }
-}
+    enabled: Boolean = true,
+    compact: Boolean = false
+) = DialogPillButton(label, icon, onClick, MaterialTheme.colorScheme.primary, modifier, enabled, compact)
 
-/** Outlined action with a subtle border and cyan content. */
+/** Secondary action (Edit, Duplicate, Share...). Same pill as [PrimaryActionButton]. */
 @Composable
 fun SecondaryActionButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    enabled: Boolean = true
-) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.heightIn(min = DialogDefaults.ButtonHeight),
-        shape = ActionShape,
-        contentPadding = ActionContentPadding,
-        border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f) else AppBorder),
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-    ) { ActionContent(icon, label, null) }
-}
+    enabled: Boolean = true,
+    compact: Boolean = false
+) = DialogPillButton(label, icon, onClick, MaterialTheme.colorScheme.primary, modifier, enabled, compact)
 
-/** Red destructive action (filled). */
+/** Destructive action (Delete, Discard...). Gray pill, red icon + label. */
 @Composable
 fun DestructiveActionButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
-) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.heightIn(min = DialogDefaults.ButtonHeight),
-        shape = ActionShape,
-        contentPadding = ActionContentPadding,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = StatusCancelled,
-            contentColor = Color.White
-        )
-    ) { Text(label, maxLines = 1, fontWeight = FontWeight.SemiBold) }
-}
+    icon: ImageVector? = Icons.Default.Delete,
+    enabled: Boolean = true,
+    compact: Boolean = false
+) = DialogPillButton(label, icon, onClick, StatusCancelled, modifier, enabled, compact)
 
-/** Quiet dismiss/cancel action. */
+/** Dismiss/cancel action. Gray pill, muted icon + label. */
 @Composable
 fun DismissActionButton(
     label: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = DialogDefaults.ButtonHeight),
-        shape = ActionShape,
-        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-    ) { Text(label, maxLines = 1, fontWeight = FontWeight.Medium) }
-}
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = Icons.Default.Close,
+    enabled: Boolean = true
+) = DialogPillButton(label, icon, onClick, MaterialTheme.colorScheme.onSurfaceVariant, modifier, enabled)
 
 /** Equal-width row of actions. */
 @Composable

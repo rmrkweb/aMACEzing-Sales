@@ -1,5 +1,6 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -308,11 +309,15 @@ private fun DateRangeSelectionDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss, modifier = Modifier.testTag("range_cancel_button")) {
-                        Text("Cancel", color = AppTextSecondary)
-                    }
+                    DismissActionButton(
+                        label = "Cancel",
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag("range_cancel_button")
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(
+                    PrimaryActionButton(
+                        label = "Apply Range",
+                        icon = Icons.Default.Check,
                         onClick = {
                             val s = startDate
                             val e = endDate
@@ -323,11 +328,8 @@ private fun DateRangeSelectionDialog(
                                 else -> errorText = "That date range can't be applied."
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = AppBackground),
                         modifier = Modifier.testTag("range_apply_button")
-                    ) {
-                        Text("Apply Range", fontWeight = FontWeight.SemiBold)
-                    }
+                    )
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
@@ -98,11 +100,13 @@ fun CustomerDialog(
             }
         },
         confirmButton = {
-            Button(
+            PrimaryActionButton(
+                label = "Save Customer",
+                icon = Icons.Default.Check,
                 onClick = {
                     if (name.isBlank()) {
                         nameError = "Customer name is required"
-                        return@Button
+                        return@PrimaryActionButton
                     }
                     val customer = initialCustomer?.copy(
                         name = name.trim(),
@@ -118,17 +122,14 @@ fun CustomerDialog(
                     onSave(customer)
                 },
                 modifier = Modifier.testTag("save_customer_button")
-            ) {
-                Text("Save Customer")
-            }
+            )
         },
         dismissButton = {
-            TextButton(
+            DismissActionButton(
+                label = "Cancel",
                 onClick = onDismiss,
                 modifier = Modifier.testTag("cancel_customer_button")
-            ) {
-                Text("Cancel")
-            }
+            )
         }
     )
 }

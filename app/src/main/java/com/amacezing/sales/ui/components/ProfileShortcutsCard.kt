@@ -76,7 +76,9 @@ fun ProfileShortcutsCard(
                 )
             },
             confirmButton = {
-                TextButton(
+                DestructiveActionButton(
+                    label = "Log out",
+                    icon = Icons.AutoMirrored.Filled.Logout,
                     onClick = {
                         stage = LogoutStage.WORKING
                         scope.launch {
@@ -89,9 +91,9 @@ fun ProfileShortcutsCard(
                         }
                     },
                     modifier = Modifier.testTag("confirm_logout_button")
-                ) { Text("Log out", color = MaterialTheme.colorScheme.error) }
+                )
             },
-            dismissButton = { TextButton(onClick = { stage = LogoutStage.IDLE }) { Text("Cancel") } }
+            dismissButton = { DismissActionButton(label = "Cancel", onClick = { stage = LogoutStage.IDLE }) }
         )
 
         LogoutStage.WORKING -> AlertDialog(
@@ -123,15 +125,17 @@ fun ProfileShortcutsCard(
                 }
             },
             confirmButton = {
-                TextButton(
+                DestructiveActionButton(
+                    label = "Log out anyway",
+                    icon = Icons.AutoMirrored.Filled.Logout,
                     onClick = {
                         stage = LogoutStage.IDLE
                         onLogout()
                     },
                     modifier = Modifier.testTag("force_logout_button")
-                ) { Text("Log out anyway", color = MaterialTheme.colorScheme.error) }
+                )
             },
-            dismissButton = { TextButton(onClick = { stage = LogoutStage.IDLE }) { Text("Cancel") } }
+            dismissButton = { DismissActionButton(label = "Cancel", onClick = { stage = LogoutStage.IDLE }) }
         )
     }
 

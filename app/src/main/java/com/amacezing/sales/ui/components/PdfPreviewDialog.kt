@@ -1,5 +1,6 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.Check
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -248,18 +249,14 @@ fun PdfPreviewDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Actions
-                Button(
-                    onClick = {
-                        PdfHelper.openPdf(context, pdfFile)
-                    },
+                PrimaryActionButton(
+                    label = "Open / View PDF",
+                    icon = Icons.Default.OpenInNew,
+                    onClick = { PdfHelper.openPdf(context, pdfFile) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("open_pdf_action_button")
-                ) {
-                    Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Open / View PDF")
-                }
+                )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -267,41 +264,33 @@ fun PdfPreviewDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = {
-                            PdfHelper.sharePdf(context, pdfFile, "$title ($documentNumber)")
-                        },
+                    SecondaryActionButton(
+                        label = "Share",
+                        icon = Icons.Default.Share,
+                        onClick = { PdfHelper.sharePdf(context, pdfFile, "$title ($documentNumber)") },
                         modifier = Modifier
                             .weight(1f)
                             .testTag("share_pdf_action_button")
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Share")
-                    }
+                    )
 
-                    OutlinedButton(
-                        onClick = {
-                            PdfHelper.printPdf(context, pdfFile, documentNumber)
-                        },
+                    SecondaryActionButton(
+                        label = "Print",
+                        icon = Icons.Default.Print,
+                        onClick = { PdfHelper.printPdf(context, pdfFile, documentNumber) },
                         modifier = Modifier
                             .weight(1f)
                             .testTag("print_pdf_action_button")
-                    ) {
-                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Print")
-                    }
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                TextButton(
+                DismissActionButton(
+                    label = "Done",
+                    icon = Icons.Default.Check,
                     onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text("Done")
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

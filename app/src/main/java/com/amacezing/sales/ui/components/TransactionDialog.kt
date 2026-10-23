@@ -1,5 +1,6 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -421,7 +422,10 @@ fun TransactionDialog(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
-                            TextButton(
+                            SecondaryActionButton(
+                                label = "Add Product",
+                                icon = Icons.Default.Add,
+                                compact = true,
                                 onClick = {
                                     // Prefer a product that isn't on the order yet.
                                     val usedIds = formLineItems.map { it.productId }.toSet()
@@ -444,11 +448,7 @@ fun TransactionDialog(
                                     }
                                 },
                                 modifier = Modifier.testTag("add_product_line_button")
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = "Add Item", modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add Product")
-                            }
+                            )
                         }
                     }
 
@@ -726,18 +726,19 @@ fun TransactionDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(
+                    DismissActionButton(
+                        label = "Cancel",
                         onClick = onDismiss,
-                        modifier = Modifier.testTag("cancel_order_button")
-                    ) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
+                        modifier = Modifier.weight(1f).testTag("cancel_order_button")
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    PrimaryActionButton(
+                        label = if (isEditMode) "Save Changes" else "Create Order",
+                        icon = Icons.Default.Check,
                         onClick = {
                             if (customerName.isBlank()) {
                                 validationError = "Customer name is required."
-                                return@Button
+                                return@PrimaryActionButton
                             }
                             val items = formLineItems.mapNotNull { line ->
                                 val qty = line.quantityText.toIntOrNull() ?: 0
@@ -748,7 +749,7 @@ fun TransactionDialog(
                             }
                             if (items.isEmpty()) {
                                 validationError = "At least one product item with quantity > 0 is required."
-                                return@Button
+                                return@PrimaryActionButton
                             }
 
                             val productInfos = formLineItems.map { Pair(it.productId, it.productName) }
@@ -781,10 +782,8 @@ fun TransactionDialog(
                                 )
                             }
                         },
-                        modifier = Modifier.testTag("save_order_button")
-                    ) {
-                        Text(if (isEditMode) "Save Changes" else "Create Order")
-                    }
+                        modifier = Modifier.weight(1.4f).testTag("save_order_button")
+                    )
                 }
             }
         }
@@ -796,17 +795,17 @@ fun TransactionDialog(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { orderDateMillis = it }
-                    showDatePicker = false
-                }) {
-                    Text("OK")
-                }
+                PrimaryActionButton(
+                    label = "OK",
+                    icon = Icons.Default.Check,
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { orderDateMillis = it }
+                        showDatePicker = false
+                    }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
+                DismissActionButton(label = "Cancel", onClick = { showDatePicker = false })
             }
         ) {
             DatePicker(state = datePickerState)

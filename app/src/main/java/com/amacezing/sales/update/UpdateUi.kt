@@ -1,5 +1,6 @@
 package com.amacezing.sales.update
 
+import androidx.compose.material.icons.filled.Check
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -249,7 +250,7 @@ private fun UpdateDialog(controller: UpdateController) {
             onDismissRequest = controller::dismiss,
             title = { Text("You're up to date") },
             text = { Text("v${BuildConfig.VERSION_NAME} is the latest version.") },
-            confirmButton = { TextButton(onClick = controller::dismiss) { Text("OK") } }
+            confirmButton = { com.amacezing.sales.ui.components.PrimaryActionButton(label = "OK", icon = Icons.Default.Check, onClick = controller::dismiss) }
         )
 
         is UpdatePhase.Available -> AlertDialog(
@@ -267,8 +268,8 @@ private fun UpdateDialog(controller: UpdateController) {
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = controller::download) { Text("Download & install") } },
-            dismissButton = { TextButton(onClick = controller::dismiss) { Text("Later") } }
+            confirmButton = { com.amacezing.sales.ui.components.PrimaryActionButton(label = "Download & install", icon = Icons.Default.CloudDownload, onClick = controller::download) },
+            dismissButton = { com.amacezing.sales.ui.components.DismissActionButton(label = "Later", onClick = controller::dismiss) }
         )
 
         is UpdatePhase.Downloading -> AlertDialog(
@@ -290,15 +291,15 @@ private fun UpdateDialog(controller: UpdateController) {
             text = {
                 Text("Turn on “Allow from this source” for aMACEzing Sales in the settings screen that opened, come back, then tap Install.")
             },
-            confirmButton = { TextButton(onClick = { controller.install(p.apk) }) { Text("Install") } },
-            dismissButton = { TextButton(onClick = controller::dismiss) { Text("Cancel") } }
+            confirmButton = { com.amacezing.sales.ui.components.PrimaryActionButton(label = "Install", icon = Icons.Default.CloudDownload, onClick = { controller.install(p.apk) }) },
+            dismissButton = { com.amacezing.sales.ui.components.DismissActionButton(label = "Cancel", onClick = controller::dismiss) }
         )
 
         is UpdatePhase.Error -> AlertDialog(
             onDismissRequest = controller::dismiss,
             title = { Text("Update problem") },
             text = { Text(p.message) },
-            confirmButton = { TextButton(onClick = controller::dismiss) { Text("OK") } }
+            confirmButton = { com.amacezing.sales.ui.components.PrimaryActionButton(label = "OK", icon = Icons.Default.Check, onClick = controller::dismiss) }
         )
     }
 }

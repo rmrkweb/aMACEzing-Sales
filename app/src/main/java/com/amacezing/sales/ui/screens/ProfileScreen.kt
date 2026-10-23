@@ -1221,25 +1221,23 @@ fun ProfileScreen(
                 )
             },
             confirmButton = {
-                Button(
+                com.amacezing.sales.ui.components.DestructiveActionButton(
+                    label = "Discard Changes",
                     onClick = {
                         resetToSaved()
                         showDiscardDialog = false
                         viewModel.handleBack()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.testTag("confirm_discard_button")
-                ) {
-                    Text("Discard Changes", color = Color.White)
-                }
+                )
             },
             dismissButton = {
-                OutlinedButton(
+                com.amacezing.sales.ui.components.DismissActionButton(
+                    label = "Keep Editing",
+                    icon = Icons.Default.Edit,
                     onClick = { showDiscardDialog = false },
                     modifier = Modifier.testTag("cancel_discard_button")
-                ) {
-                    Text("Keep Editing", color = TechTextSilver)
-                }
+                )
             },
             containerColor = TechSurfaceDeepNavy,
             modifier = Modifier.testTag("discard_dialog")

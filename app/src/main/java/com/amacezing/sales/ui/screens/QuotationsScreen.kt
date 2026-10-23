@@ -481,20 +481,18 @@ fun QuotationsScreen(
                 }
             },
             confirmButton = {
-                Button(
+                com.amacezing.sales.ui.components.PrimaryActionButton(
+                    label = "Convert to Order",
+                    icon = Icons.Default.ShoppingCart,
                     onClick = {
                         viewModel.convertQuotationToOrder(target)
                         quotationToConvert = null
                     },
                     modifier = Modifier.testTag("confirm_convert_quotation_button")
-                ) {
-                    Text("Convert to Order")
-                }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { quotationToConvert = null }) {
-                    Text("Cancel")
-                }
+                com.amacezing.sales.ui.components.DismissActionButton(label = "Cancel", onClick = { quotationToConvert = null })
             }
         )
     }
@@ -508,21 +506,17 @@ fun QuotationsScreen(
                 Text("Are you sure you want to permanently delete quotation ${target.quotation.quotationNumber} for ${target.quotation.customerName}?")
             },
             confirmButton = {
-                Button(
+                com.amacezing.sales.ui.components.DestructiveActionButton(
+                    label = "Delete",
                     onClick = {
                         viewModel.deleteQuotation(target.quotation.id)
                         quotationToDelete = null
                     },
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.testTag("confirm_delete_quotation_button")
-                ) {
-                    Text("Delete")
-                }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { quotationToDelete = null }) {
-                    Text("Cancel")
-                }
+                com.amacezing.sales.ui.components.DismissActionButton(label = "Cancel", onClick = { quotationToDelete = null })
             }
         )
     }

@@ -1,5 +1,7 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
@@ -184,16 +186,18 @@ fun ProductDialog(
             }
         },
         confirmButton = {
-            Button(
+            PrimaryActionButton(
+                label = "Save Product",
+                icon = Icons.Default.Check,
                 onClick = {
                     if (name.isBlank()) {
                         errorMessage = "Product name cannot be empty."
-                        return@Button
+                        return@PrimaryActionButton
                     }
                     val selling = sellingPriceText.toDoubleOrNull()
                     if (selling == null || selling < 0.0) {
                         errorMessage = "Please enter a valid selling price."
-                        return@Button
+                        return@PrimaryActionButton
                     }
                     val cost = unitCostText.toDoubleOrNull() ?: 0.0
 
@@ -213,17 +217,14 @@ fun ProductDialog(
                     onSave(product)
                 },
                 modifier = Modifier.testTag("save_product_button")
-            ) {
-                Text("Save Product")
-            }
+            )
         },
         dismissButton = {
-            TextButton(
+            DismissActionButton(
+                label = "Cancel",
                 onClick = onDismiss,
                 modifier = Modifier.testTag("cancel_product_button")
-            ) {
-                Text("Cancel")
-            }
+            )
         }
     )
 }

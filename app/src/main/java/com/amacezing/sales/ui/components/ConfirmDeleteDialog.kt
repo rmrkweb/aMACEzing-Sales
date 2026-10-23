@@ -1,5 +1,7 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -81,6 +83,7 @@ fun DuplicateConfirmDialog(
         confirmButton = {
             PrimaryActionButton(
                 label = "Duplicate",
+                icon = Icons.Default.ContentCopy,
                 onClick = onConfirm,
                 modifier = Modifier.testTag("confirm_duplicate_button")
             )

@@ -136,16 +136,14 @@ fun TransactionDetailDialog(
                         .weight(1f)
                         .testTag("edit_order_action_button")
                 )
-                OutlinedIconButton(
+                DestructiveActionButton(
+                    label = "Delete",
+                    icon = Icons.Default.Delete,
                     onClick = onDelete,
                     modifier = Modifier
-                        .size(DialogDefaults.ButtonHeight)
-                        .testTag("delete_order_action_button"),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, StatusCancelled.copy(alpha = 0.5f))
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete order", tint = StatusCancelled)
-                }
+                        .weight(1f)
+                        .testTag("delete_order_action_button")
+                )
             }
         }
     ) {

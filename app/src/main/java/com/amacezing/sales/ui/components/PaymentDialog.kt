@@ -1,5 +1,6 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -101,7 +102,7 @@ fun PaymentDialog(
         },
         actions = {
             ActionRow {
-                SecondaryActionButton(
+                DismissActionButton(
                     label = "Cancel",
                     onClick = onDismiss,
                     modifier = Modifier
@@ -110,6 +111,7 @@ fun PaymentDialog(
                 )
                 PrimaryActionButton(
                     label = "Record Payment",
+                    icon = Icons.Default.Payment,
                     onClick = ::submit,
                     enabled = !submitted,
                     modifier = Modifier

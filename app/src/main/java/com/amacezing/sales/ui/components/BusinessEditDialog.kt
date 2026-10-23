@@ -125,13 +125,14 @@ fun BusinessEditDialog(
         },
         actions = {
             ActionRow {
-                SecondaryActionButton(
+                DismissActionButton(
                     label = "Cancel",
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f)
                 )
                 PrimaryActionButton(
                     label = "Save",
+                    icon = Icons.Default.Check,
                     onClick = ::submit,
                     modifier = Modifier
                         .weight(1f)
@@ -263,7 +264,7 @@ fun BusinessEditDialog(
 
         if (initial != null && usage != null) {
             if (usage.isUnused) {
-                SecondaryActionButton(
+                DestructiveActionButton(
                     label = "Delete business",
                     onClick = { confirmDelete = true },
                     modifier = Modifier

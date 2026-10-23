@@ -1,5 +1,6 @@
 package com.amacezing.sales.ui.components
 
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -278,14 +279,13 @@ fun QuotationDialog(
 
                                     if (existingCustomers.isNotEmpty()) {
                                         Box {
-                                            TextButton(
+                                            SecondaryActionButton(
+                                                label = "Select Existing",
+                                                icon = Icons.Default.Person,
+                                                compact = true,
                                                 onClick = { showCustomerDropdown = true },
                                                 modifier = Modifier.testTag("select_existing_customer_button")
-                                            ) {
-                                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp))
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Select Existing")
-                                            }
+                                            )
 
                                             DropdownMenu(
                                                 expanded = showCustomerDropdown,
@@ -374,16 +374,15 @@ fun QuotationDialog(
                         ) {
                             Text("Products & Services", fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
-                            TextButton(
+                            SecondaryActionButton(
+                                label = "Add Custom Item",
+                                icon = Icons.Default.Add,
+                                compact = true,
                                 onClick = {
                                     lineItems.add(QuotationItemState())
                                 },
                                 modifier = Modifier.testTag("add_quotation_item_button")
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Add Custom Item")
-                            }
+                            )
                         }
                     }
 
@@ -406,15 +405,12 @@ fun QuotationDialog(
                                     Row {
                                         if (filteredProducts.isNotEmpty()) {
                                             Box {
-                                                OutlinedButton(
-                                                    onClick = { showProductPicker = true },
-                                                    modifier = Modifier.height(34.dp)
-                                                ) {
-                                                    Icon(Icons.Default.ShoppingBag, contentDescription = null, modifier = Modifier.size(14.dp))
-                                                    Spacer(modifier = Modifier.width(4.dp))
-                                                    Text("Pick Catalog", fontSize = 11.sp)
-                                                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                                                }
+                                                SecondaryActionButton(
+                                                    label = "Pick Catalog",
+                                                    icon = Icons.Default.ShoppingBag,
+                                                    compact = true,
+                                                    onClick = { showProductPicker = true }
+                                                )
 
                                                 DropdownMenu(
                                                     expanded = showProductPicker,
@@ -649,16 +645,17 @@ fun QuotationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OutlinedButton(
+                    DismissActionButton(
+                        label = "Cancel",
                         onClick = onDismiss,
                         modifier = Modifier
                             .weight(1f)
                             .testTag("cancel_quotation_button")
-                    ) {
-                        Text("Cancel")
-                    }
+                    )
 
-                    Button(
+                    PrimaryActionButton(
+                        label = if (isEditing) "Save Changes" else "Generate Quotation",
+                        icon = if (isEditing) Icons.Default.Check else Icons.Default.PictureAsPdf,
                         onClick = {
                             val items = lineItems.filter { it.productName.isNotBlank() && it.quantity > 0 }.map {
                                 QuotationLineItem(
@@ -688,13 +685,7 @@ fun QuotationDialog(
                         modifier = Modifier
                             .weight(2f)
                             .testTag("submit_quotation_button")
-                    ) {
-                        if (!isEditing) {
-                            Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                        }
-                        Text(if (isEditing) "Save Changes" else "Generate Quotation")
-                    }
+                    )
                 }
             }
         }
