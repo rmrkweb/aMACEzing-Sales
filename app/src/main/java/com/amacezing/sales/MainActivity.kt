@@ -294,7 +294,7 @@ fun MainAppScaffold(
             .windowInsetsPadding(WindowInsets.statusBars),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
+            if (currentScreen != Screen.PROFILE && currentScreen != Screen.ABOUT) TopAppBar(
                 title = {
                     Column {
                         Text(
@@ -362,7 +362,7 @@ fun MainAppScaffold(
             )
         },
         bottomBar = {
-            NavigationBar(
+            if (currentScreen != Screen.PROFILE && currentScreen != Screen.ABOUT) NavigationBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars),
@@ -374,7 +374,7 @@ fun MainAppScaffold(
                     Screen.QUOTATIONS,
                     Screen.TRANSACTIONS,
                     Screen.PRODUCTS,
-                    Screen.SETTINGS
+                    Screen.PROFILE
                 )
                 val violet = com.amacezing.sales.ui.theme.AccentViolet
                 val muted = com.amacezing.sales.ui.theme.AppTextSecondary
@@ -437,7 +437,10 @@ fun MainAppScaffold(
                     Screen.REPORTS -> ReportsScreen(viewModel = viewModel)
                     Screen.IMPORT_EXPORT -> ImportExportScreen(viewModel = viewModel)
                     Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
-                    Screen.ABOUT -> com.amacezing.sales.ui.screens.AboutScreen()
+                    Screen.ABOUT -> com.amacezing.sales.ui.screens.AboutScreen(
+                        viewModel = viewModel,
+                        onBack = { viewModel.handleBack() }
+                    )
                     Screen.PROFILE -> ProfileScreen(viewModel = viewModel, currentUser = currentUser, onSignOut = onSignOut)
                 }
             }

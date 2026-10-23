@@ -562,6 +562,28 @@ fun ProfileScreen(
                 )
             }
 
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = TechSurfaceDeepNavy),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, TechBorderSubtle)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.SETTINGS) }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Tune, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("App Settings")
+                        }
+                        OutlinedButton(onClick = { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.ABOUT) }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Default.Info, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("About, Cloud Sync & Updates")
+                        }
+                    }
+                }
+            }
+
             // App lock (biometric) toggle
             item {
                 com.amacezing.sales.ui.components.BiometricLockCard()
@@ -1193,7 +1215,6 @@ fun ProfileScreen(
 
             item {
                 Spacer(modifier = Modifier.height(14.dp))
-                com.amacezing.sales.update.UpdateSettingsCard()
             }
 
             item {

@@ -124,28 +124,14 @@ fun DashboardScreen(
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Dashboard",
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = AccentCyan
-                )
-                Text(
-                    text = "Sales Monitoring & Profit Dashboard",
-                    fontSize = 14.sp,
-                    color = AppTextSecondary
-                )
-
-                Spacer(modifier = Modifier.height(18.dp))
-
+                Spacer(modifier = Modifier.height(8.dp))
                 BusinessFilterChips(
                     selectedBusiness = selectedBusiness,
                     onSelectBusiness = { viewModel.setBusinessFilter(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    showLabel = true
+                    showLabel = false
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 DateFilterBar(
                     selectedType = dateRangeType,
@@ -156,10 +142,6 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-        }
-
-        item {
-            FilterSectionLabel("Financial overview", modifier = Modifier.padding(top = 8.dp))
         }
 
         // Primary metrics (equal-height rows)
