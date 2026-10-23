@@ -95,15 +95,18 @@ fun DateFilterBar(
     customEndMillis: Long?,
     onSelectType: (DateRangeType) -> Unit,
     onApplyCustomRange: (LocalDate, LocalDate) -> Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showLabel: Boolean = true
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val customStart = customStartMillis?.let { millisToLocalDate(it) }
     val customEnd = customEndMillis?.let { millisToLocalDate(it) }
 
     Column(modifier = modifier) {
-        FilterSectionLabel("Period")
-        Spacer(modifier = Modifier.height(8.dp))
+        if (showLabel) {
+            FilterSectionLabel("Period")
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
