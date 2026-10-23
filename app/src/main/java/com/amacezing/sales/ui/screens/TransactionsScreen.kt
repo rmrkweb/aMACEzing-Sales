@@ -61,6 +61,8 @@ import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.model.PaymentStatus
 import com.amacezing.sales.ui.components.BusinessBadge
 import com.amacezing.sales.ui.components.BusinessFilterChips
+import com.amacezing.sales.ui.components.CardActionBar
+import com.amacezing.sales.ui.components.CardActionButton
 import com.amacezing.sales.ui.components.PaymentStatusBadge
 import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.StatusCancelled
@@ -339,48 +341,35 @@ fun TransactionsScreen(
                                 }
                             }
 
-                            // Consistent full-width card action bar, separated from card content.
-                            Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f))
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                TextButton(
+                            // Shared card action bar (icon + label), same style across all screens.
+                            CardActionBar {
+                                CardActionButton(
+                                    label = "Details",
+                                    icon = Icons.Default.Receipt,
                                     onClick = { viewModel.viewingTransaction.value = item },
                                     modifier = Modifier.weight(1f).testTag("tx_details_btn_${tx.orderNumber}")
-                                ) {
-                                    Icon(Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Details", fontSize = 11.sp, maxLines = 1)
-                                }
-                                TextButton(
+                                )
+                                CardActionButton(
+                                    label = "Edit",
+                                    icon = Icons.Default.Edit,
                                     onClick = { viewModel.editingTransaction.value = item },
                                     modifier = Modifier.weight(1f).testTag("tx_edit_btn_${tx.orderNumber}")
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Edit", fontSize = 11.sp)
-                                }
+                                )
                                 if (tx.outstandingBalance > 0.0 && tx.paymentStatus != PaymentStatus.CANCELLED) {
-                                    TextButton(
+                                    CardActionButton(
+                                        label = "Pay",
+                                        icon = Icons.Default.Payment,
                                         onClick = { viewModel.recordingPaymentTransaction.value = item },
                                         modifier = Modifier.weight(1.2f).testTag("tx_pay_btn_${tx.orderNumber}")
-                                    ) {
-                                        Icon(Icons.Default.Payment, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Pay", fontSize = 11.sp)
-                                    }
+                                    )
                                 }
-                                TextButton(
+                                CardActionButton(
+                                    label = "Delete",
+                                    icon = Icons.Default.Delete,
+                                    color = StatusCancelled,
                                     onClick = { viewModel.itemToDelete.value = tx },
                                     modifier = Modifier.weight(1f).testTag("tx_delete_btn_${tx.orderNumber}")
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, tint = StatusCancelled, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Delete", fontSize = 11.sp, color = StatusCancelled)
-                                }
+                                )
                             }
                         }
                     }

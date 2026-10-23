@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -63,6 +64,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.ui.components.BusinessBadge
+import com.amacezing.sales.ui.components.CardActionBar
+import com.amacezing.sales.ui.components.CardActionButton
 import com.amacezing.sales.ui.components.BusinessComparisonCard
 import com.amacezing.sales.ui.components.BusinessFilterChips
 import com.amacezing.sales.ui.components.MetricCard
@@ -310,10 +313,9 @@ fun DashboardScreen(
                         border = BorderStroke(1.dp, AppBorder),
                         colors = CardDefaults.cardColors(containerColor = AppSurfaceElevated)
                     ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -338,14 +340,24 @@ fun DashboardScreen(
                                     fontSize = 14.sp,
                                     color = StatusPending
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Button(
-                                    onClick = { viewModel.recordingPaymentTransaction.value = item },
-                                    modifier = Modifier.testTag("quick_pay_${tx.orderNumber}")
-                                ) {
-                                    Text("Pay", fontSize = 12.sp)
-                                }
                             }
+                        }
+
+                        // Shared card action bar (icon + label), same style across all screens.
+                        CardActionBar {
+                            CardActionButton(
+                                label = "Details",
+                                icon = Icons.Default.Receipt,
+                                onClick = { viewModel.viewingTransaction.value = item },
+                                modifier = Modifier.weight(1f).testTag("outstanding_details_${tx.orderNumber}")
+                            )
+                            CardActionButton(
+                                label = "Pay",
+                                icon = Icons.Default.Payment,
+                                onClick = { viewModel.recordingPaymentTransaction.value = item },
+                                modifier = Modifier.weight(1f).testTag("quick_pay_${tx.orderNumber}")
+                            )
+                        }
                         }
                     }
                 }

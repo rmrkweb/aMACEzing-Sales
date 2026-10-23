@@ -22,6 +22,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -109,13 +110,14 @@ fun DateFilterBar(
         ) {
             DateRangeType.values().forEach { range ->
                 val isCustom = range == DateRangeType.CUSTOM
-                CompactFilterChip(
-                    label = range.label,
+                // Same chip as the Sales status filters (default Material FilterChip colors and height).
+                FilterChip(
                     selected = selectedType == range,
                     onClick = { if (isCustom) showDialog = true else onSelectType(range) },
-                    selectedColor = AccentViolet,
-                    leadingIcon = if (isCustom) Icons.Default.DateRange else null,
-                    height = 38.dp,
+                    label = { Text(range.label) },
+                    leadingIcon = if (isCustom) {
+                        { Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                    } else null,
                     modifier = Modifier.testTag("date_range_${range.name.lowercase()}")
                 )
             }

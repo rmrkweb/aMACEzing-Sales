@@ -51,6 +51,8 @@ import com.amacezing.sales.ui.components.colorOf
 import com.amacezing.sales.ui.components.LocalBusinesses
 import com.amacezing.sales.model.ProfitMethod
 import com.amacezing.sales.ui.components.BusinessBadge
+import com.amacezing.sales.ui.components.CardActionBar
+import com.amacezing.sales.ui.components.CardActionButton
 import com.amacezing.sales.ui.theme.EngravingBrown
 import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.SintraBoardBlue
@@ -238,22 +240,6 @@ fun ProductsScreen(
 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     BusinessBadge(product.businessType)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    IconButton(
-                                        onClick = {
-                                            viewModel.editingProduct.value = product
-                                            viewModel.showProductDialog.value = true
-                                        },
-                                        modifier = Modifier.size(32.dp).testTag("edit_product_${product.id}")
-                                    ) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(16.dp))
-                                    }
-                                    IconButton(
-                                        onClick = { viewModel.itemToDelete.value = product },
-                                        modifier = Modifier.size(32.dp).testTag("delete_product_${product.id}")
-                                    ) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Delete", tint = StatusCancelled, modifier = Modifier.size(16.dp))
-                                    }
                                 }
                             }
 
@@ -295,6 +281,26 @@ fun ProductsScreen(
                                         color = SecondaryAmber
                                     )
                                 }
+                            }
+
+                            // Shared card action bar (icon + label), same style across all screens.
+                            CardActionBar {
+                                CardActionButton(
+                                    label = "Edit",
+                                    icon = Icons.Default.Edit,
+                                    onClick = {
+                                        viewModel.editingProduct.value = product
+                                        viewModel.showProductDialog.value = true
+                                    },
+                                    modifier = Modifier.weight(1f).testTag("edit_product_${product.id}")
+                                )
+                                CardActionButton(
+                                    label = "Delete",
+                                    icon = Icons.Default.Delete,
+                                    color = StatusCancelled,
+                                    onClick = { viewModel.itemToDelete.value = product },
+                                    modifier = Modifier.weight(1f).testTag("delete_product_${product.id}")
+                                )
                             }
                         }
                     }

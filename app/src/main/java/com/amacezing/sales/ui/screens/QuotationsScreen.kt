@@ -67,6 +67,8 @@ import com.amacezing.sales.model.QuotationWithItems
 import com.amacezing.sales.pdf.PdfDocumentGenerator
 import com.amacezing.sales.pdf.PdfHelper
 import com.amacezing.sales.ui.components.BusinessBadge
+import com.amacezing.sales.ui.components.CardActionBar
+import com.amacezing.sales.ui.components.CardActionButton
 import com.amacezing.sales.ui.theme.SecondaryAmber
 import com.amacezing.sales.ui.theme.StatusPaid
 import com.amacezing.sales.ui.theme.StatusPending
@@ -358,8 +360,6 @@ fun QuotationsScreen(
                             )
 
                             Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(10.dp))
 
                             // Bottom Row: Date & Net Total & Action Buttons
                             Row(
@@ -388,16 +388,11 @@ fun QuotationsScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Action buttons
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // PDF Action Button
-                                Button(
+                            // Shared card action bar (icon + label), same style across all screens.
+                            CardActionBar {
+                                CardActionButton(
+                                    label = "PDF",
+                                    icon = Icons.Default.PictureAsPdf,
                                     onClick = {
                                         try {
                                             val pdfFile = PdfDocumentGenerator.generateQuotationPdf(
@@ -416,43 +411,38 @@ fun QuotationsScreen(
                                         }
                                     },
                                     modifier = Modifier
-                                        .weight(1.2f)
+                                        .weight(1f)
                                         .testTag("generate_quotation_pdf_button_${q.id}")
-                                ) {
-                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("View PDF", fontSize = 12.sp)
-                                }
+                                )
 
-                                // Convert to Order Button
                                 if (q.status != QuotationStatus.CONVERTED) {
-                                    OutlinedButton(
+                                    CardActionButton(
+                                        label = "Convert",
+                                        icon = Icons.Default.ShoppingCart,
                                         onClick = { quotationToConvert = qWithItems },
                                         modifier = Modifier
                                             .weight(1.2f)
                                             .testTag("convert_quotation_button_${q.id}")
-                                    ) {
-                                        Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(16.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Convert", fontSize = 12.sp)
-                                    }
-                                }
-
-                                if (q.status != QuotationStatus.CONVERTED) {
-                                    IconButton(
+                                    )
+                                    CardActionButton(
+                                        label = "Edit",
+                                        icon = Icons.Default.Edit,
                                         onClick = { viewModel.editingQuotation.value = qWithItems },
-                                        modifier = Modifier.testTag("edit_quotation_button_${q.id}")
-                                    ) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit quotation")
-                                    }
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .testTag("edit_quotation_button_${q.id}")
+                                    )
                                 }
 
-                                IconButton(
+                                CardActionButton(
+                                    label = "Delete",
+                                    icon = Icons.Default.Delete,
+                                    color = MaterialTheme.colorScheme.error,
                                     onClick = { quotationToDelete = qWithItems },
-                                    modifier = Modifier.testTag("delete_quotation_button_${q.id}")
-                                ) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-                                }
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("delete_quotation_button_${q.id}")
+                                )
                             }
                         }
                     }

@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import com.amacezing.sales.ui.components.CardActionButton
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudSync
@@ -192,11 +193,11 @@ fun SettingsScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = "Edit ${business.name}",
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                CardActionButton(
+                                    label = "Edit",
+                                    icon = Icons.Default.Edit,
+                                    onClick = { editingBusiness = business; showBusinessDialog = true },
+                                    modifier = Modifier.testTag("edit_business_${business.id.lowercase()}")
                                 )
                             }
                         }
