@@ -437,6 +437,7 @@ fun MainAppScaffold(
                     Screen.REPORTS -> ReportsScreen(viewModel = viewModel)
                     Screen.IMPORT_EXPORT -> ImportExportScreen(viewModel = viewModel)
                     Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
+                    Screen.ABOUT -> com.amacezing.sales.ui.screens.AboutScreen()
                     Screen.PROFILE -> ProfileScreen(viewModel = viewModel, currentUser = currentUser, onSignOut = onSignOut)
                 }
             }

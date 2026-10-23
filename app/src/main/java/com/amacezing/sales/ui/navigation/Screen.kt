@@ -5,6 +5,7 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -23,6 +24,7 @@ enum class Screen(val title: String, val icon: ImageVector) {
     // Secondary Feature Screens (Accessible via Home cards and Profile hub)
     CUSTOMERS("Customers", Icons.Default.People),
     REPORTS("Reports", Icons.Default.Analytics),
-    IMPORT_EXPORT("Excel Migration", Icons.Default.FileUpload),
-    SETTINGS("Settings", Icons.Default.Settings)
+    IMPORT_EXPORT("Import & Export", Icons.Default.FileUpload),
+    SETTINGS("Settings", Icons.Default.Settings),
+    ABOUT("About", Icons.Default.Info)
 }

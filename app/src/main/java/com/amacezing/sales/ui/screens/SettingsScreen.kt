@@ -2,6 +2,7 @@ package com.amacezing.sales.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
@@ -386,34 +387,37 @@ fun SettingsScreen(
                 }
             }
 
-            // System Reset & Seed Data
+            // About
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.navigateTo(com.amacezing.sales.ui.navigation.Screen.ABOUT) }
+                        .testTag("about_button"),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Initial Catalog & Demo Data", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                        Text(
-                            "Ensure the initial Bamboo Coasters, Bamboo Ballpens, and Sintra Board A4/A3 prints are in the database.",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        OutlinedButton(
-                            onClick = {
-                                viewModel.repository.apply {
-                                    // reseed
-                                }
-                            },
-                            modifier = Modifier.testTag("reseed_catalog_button")
-                        ) {
-                            Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Re-verify Initial Catalog")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("About", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(
+                                "App version and developer",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }

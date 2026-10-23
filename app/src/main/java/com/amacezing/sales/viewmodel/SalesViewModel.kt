@@ -18,7 +18,12 @@ import com.amacezing.sales.model.TransactionWithDetails
 import com.amacezing.sales.ui.navigation.Screen
 import com.amacezing.sales.util.CsvHelper
 import com.amacezing.sales.util.Formatters
-import com.amacezing.sales.util.ImportPreviewSummary
+import com.amacezing.sales.util.ExistingOrderRef
+import com.amacezing.sales.util.ImportContext
+import com.amacezing.sales.util.ImportEngine
+import com.amacezing.sales.util.ImportPlan
+import com.amacezing.sales.util.ProductRef
+import com.amacezing.sales.util.TabularReader
 import com.amacezing.sales.util.ImportValidationRow
 import com.amacezing.sales.util.LineItemInput
 import com.amacezing.sales.util.SalesCalculator
@@ -37,6 +42,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 
 enum class DateRangeType(val label: String) {
     ALL_TIME("All Time"),
@@ -146,11 +153,11 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     val itemToDelete = MutableStateFlow<Any?>(null)
     val snackbarMessage = MutableStateFlow<String?>(null)
 
-    // Import/Export state
-    val importText = MutableStateFlow("")
-    val importBusinessType = MutableStateFlow(com.amacezing.sales.model.Business.ENGRAVING_ID)
-    val importSheetName = MutableStateFlow("Engraving 2026")
-    val importPreview = MutableStateFlow<ImportPreviewSummary?>(null)
+    // Data import state (file upload -> validation -> confirm)
+    val importFileName = MutableStateFlow<String?>(null)
+    val importPlan = MutableStateFlow<ImportPlan?>(null)
+    val importError = MutableStateFlow<String?>(null)
+    val importIncludeDuplicates = MutableStateFlow(false)
     val isImporting = MutableStateFlow(false)
 
     // Raw Room flows
@@ -1113,141 +1120,126 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         _currentScreen.value = Screen.DASHBOARD
     }
 
-    // Excel Migration
-    fun loadSampleMigration(csvContent: String, businessType: BusinessType, sheetName: String) {
-        importText.value = csvContent
-        importBusinessType.value = businessType
-        importSheetName.value = sheetName
-        previewImport()
+    // --- Data import (CSV / Excel upload) ---
+    fun clearImport() {
+        importFileName.value = null
+        importPlan.value = null
+        importError.value = null
+        importIncludeDuplicates.value = false
     }
 
-    fun previewImport() {
-        val content = importText.value
-        val biz = importBusinessType.value
-        val sheet = importSheetName.value
-        val existing = allTransactions.value
-        val rule = profitRuleFor(biz)
-
-        val summary = CsvHelper.parseAndValidateExcelCsv(
-            content = content,
-            businessType = biz,
-            sheetName = sheet,
-            existingTransactions = existing,
-            profitRule = rule
-        )
-        importPreview.value = summary
+    /** Reads and validates an uploaded file; nothing is saved until [executeImport]. */
+    fun loadImportFile(fileName: String, bytes: ByteArray) {
+        viewModelScope.launch {
+            importError.value = null
+            importPlan.value = null
+            importIncludeDuplicates.value = false
+            importFileName.value = fileName
+            try {
+                val catalog = repository.getProductsSnapshot()
+                val existing = repository.allTransactions.first()
+                val plan = withContext(Dispatchers.Default) {
+                    val rows = TabularReader.read(fileName, bytes)
+                    ImportEngine.validate(
+                        rows,
+                        ImportContext(
+                            businesses = businesses.value,
+                            products = catalog.map { ProductRef(it.id, it.businessType, it.name, it.unitCost) },
+                            existingOrders = existing.map {
+                                ExistingOrderRef(
+                                    it.transaction.businessType,
+                                    it.transaction.customerName,
+                                    it.transaction.orderDateEpochMillis,
+                                    it.transaction.netSales
+                                )
+                            }
+                        )
+                    )
+                }
+                importPlan.value = plan
+            } catch (e: IllegalArgumentException) {
+                importError.value = e.message ?: "This file can't be imported."
+            } catch (e: Exception) {
+                importError.value = "Couldn't read this file. Check that it is a valid CSV or Excel (.xlsx) file."
+            }
+        }
     }
 
     fun executeImport() {
-        val preview = importPreview.value ?: return
-        val validRows = preview.rows.filter { it.isValid }
-        if (validRows.isEmpty()) return
+        val plan = importPlan.value ?: return
+        if (isImporting.value) return
+        val includeDuplicates = importIncludeDuplicates.value
+        val toImport = plan.orders.filter { includeDuplicates || !it.isDuplicate }
+        if (toImport.isEmpty()) return
 
         viewModelScope.launch {
             isImporting.value = true
-            val biz = importBusinessType.value
-            val sheetName = importSheetName.value
-            val currentSettings = settings.value
-
-            val p1Name = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) "Bamboo Coaster" else "Sintra Board A4 Print"
-            val p1Selling = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 70.0 else 150.0
-            val p1Cost = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 35.0 else 62.50
-
-            val p2Name = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) "Bamboo Ballpen" else "Sintra Board A3 Print"
-            val p2Selling = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 40.0 else 300.0
-            val p2Cost = if (biz == com.amacezing.sales.model.Business.ENGRAVING_ID) 20.0 else 125.00
-
-            var importedCount = 0
-
-            for (row in validRows) {
-                val txId = UUID.randomUUID().toString()
-                val orderNumber = repository.generateOrderNumber(biz, row.parsedDateMillis)
-
-                // Preserve original Excel remarks, parsing payment indicators if present
-                val remarks = row.rawRemarks
-                val isPaidRemark = remarks.contains("paid", ignoreCase = true) || remarks.contains("received", ignoreCase = true)
-                val isDepositRemark = remarks.contains("deposit", ignoreCase = true) || remarks.contains("50%", ignoreCase = true)
-
-                val amountPaid = if (isDepositRemark) {
-                    SalesCalculator.roundTo2Decimals(row.calculatedNet * 0.5)
-                } else if (isPaidRemark) {
-                    row.calculatedNet
-                } else {
-                    0.0
-                }
-
-                val balance = SalesCalculator.roundTo2Decimals((row.calculatedNet - amountPaid).coerceAtLeast(0.0))
-                val status = if (amountPaid >= row.calculatedNet && row.calculatedNet > 0.0) {
-                    PaymentStatus.PAID
-                } else if (amountPaid > 0.0) {
-                    PaymentStatus.PARTIALLY_PAID
-                } else {
-                    PaymentStatus.PENDING
-                }
-
-                val tx = SalesTransaction(
-                    id = txId,
-                    orderNumber = orderNumber,
-                    businessType = biz,
-                    customerName = row.rawCustomer,
-                    orderDateEpochMillis = row.parsedDateMillis,
-                    discountType = DiscountType.PERCENTAGE,
-                    discountPercentage = row.discountPercent,
-                    discountAmount = SalesCalculator.roundTo2Decimals(row.calculatedGross - row.calculatedNet),
-                    grossSales = row.calculatedGross,
-                    netSales = row.calculatedNet,
-                    estimatedProfit = row.calculatedProfit,
-                    totalProductCost = SalesCalculator.roundTo2Decimals(
-                        (row.product1Qty * p1Cost) + (row.product2Qty * p2Cost)
-                    ),
-                    paymentStatus = status,
-                    amountPaid = amountPaid,
-                    outstandingBalance = balance,
-                    remarks = "[Imported from $sheetName] $remarks"
-                )
-
-                val lineItems = mutableListOf<TransactionLineItem>()
-                if (row.product1Qty > 0) {
-                    lineItems.add(
+            try {
+                val catalog = repository.getProductsSnapshot()
+                var imported = 0
+                for (order in toImport) {
+                    val inputs = order.lines.map { line ->
+                        val cost = line.unitCost
+                            ?: catalog.firstOrNull { it.id == line.productId }?.unitCost
+                            ?: 0.0
+                        LineItemInput(line.quantity, line.unitPrice, cost)
+                    }
+                    val calc = SalesCalculator.calculate(
+                        profitRule = profitRuleFor(order.businessId),
+                        items = inputs,
+                        discountType = DiscountType.PERCENTAGE,
+                        discountValue = order.discountPercent,
+                        amountPaid = order.amountPaid
+                    )
+                    val txId = UUID.randomUUID().toString()
+                    val orderNumber = repository.generateOrderNumber(order.businessId, order.dateMillis)
+                    val tx = SalesTransaction(
+                        id = txId,
+                        orderNumber = orderNumber,
+                        businessType = order.businessId,
+                        customerName = order.customer,
+                        orderDateEpochMillis = order.dateMillis,
+                        discountType = DiscountType.PERCENTAGE,
+                        discountPercentage = order.discountPercent,
+                        discountAmount = calc.discountAmount,
+                        grossSales = calc.grossSales,
+                        netSales = calc.netSales,
+                        estimatedProfit = calc.estimatedProfit,
+                        totalProductCost = calc.totalProductCost,
+                        paymentStatus = calc.resolvedStatus,
+                        amountPaid = order.amountPaid,
+                        outstandingBalance = calc.outstandingBalance,
+                        remarks = order.remarks
+                    )
+                    val lines = order.lines.mapIndexed { i, line ->
                         TransactionLineItem(
                             transactionId = txId,
-                            productId = 1L,
-                            productName = p1Name,
-                            quantity = row.product1Qty,
-                            unitSellingPrice = p1Selling,
-                            unitCost = p1Cost,
-                            lineSubtotal = SalesCalculator.roundTo2Decimals(row.product1Qty * p1Selling)
+                            productId = line.productId ?: 0L,
+                            productName = line.productName,
+                            quantity = line.quantity,
+                            unitSellingPrice = line.unitPrice,
+                            unitCost = inputs[i].unitCost,
+                            lineSubtotal = SalesCalculator.roundTo2Decimals(line.quantity * line.unitPrice)
                         )
+                    }
+                    repository.saveTransaction(
+                        transaction = tx,
+                        lineItems = lines,
+                        initialPaymentAmount = order.amountPaid,
+                        paymentMethod = order.paymentMethod
                     )
+                    imported++
                 }
-                if (row.product2Qty > 0) {
-                    lineItems.add(
-                        TransactionLineItem(
-                            transactionId = txId,
-                            productId = 2L,
-                            productName = p2Name,
-                            quantity = row.product2Qty,
-                            unitSellingPrice = p2Selling,
-                            unitCost = p2Cost,
-                            lineSubtotal = SalesCalculator.roundTo2Decimals(row.product2Qty * p2Selling)
-                        )
-                    )
-                }
-
-                repository.saveTransaction(
-                    transaction = tx,
-                    lineItems = lineItems,
-                    initialPaymentAmount = amountPaid,
-                    paymentMethod = if (remarks.contains("gcash", ignoreCase = true)) "GCash" else if (remarks.contains("check", ignoreCase = true)) "Check" else "Cash"
-                )
-                importedCount++
+                // Upload the new orders (and any customers created for them); offline is fine.
+                try { performCloudSync(silent = true) } catch (_: Exception) {}
+                clearImport()
+                snackbarMessage.value = "Imported $imported order${if (imported == 1) "" else "s"}."
+                navigateTo(Screen.TRANSACTIONS)
+            } catch (e: Exception) {
+                importError.value = "Import stopped: ${e.message ?: "unexpected error"}. Orders already imported were kept."
+            } finally {
+                isImporting.value = false
             }
-
-            isImporting.value = false
-            importPreview.value = null
-            importText.value = ""
-            snackbarMessage.value = "Successfully imported $importedCount records from $sheetName!"
-            navigateTo(Screen.TRANSACTIONS)
         }
     }
 

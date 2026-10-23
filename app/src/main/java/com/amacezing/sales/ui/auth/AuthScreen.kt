@@ -380,11 +380,11 @@ Spacer(modifier = Modifier.height(18.dp))
                                 description = "Your sales, orders, and receivables stay synchronized across your devices."
                             )
 
-                            // Feature 2: Multiple Business Entity in One App
+                            // Feature 2: Two Businesses in One App
                             AuthFeatureItem(
                                 icon = Icons.Default.Storefront,
-                                title = "Multiple Businesses in One App",
-                                description = "Independent tracking for each business, with dynamic entity management."
+                                title = "Two Businesses in One App",
+                                description = "Independent tracking for Engraving and Sintra Board Printing."
                             )
 
                             // Feature 3: Secure Business Data

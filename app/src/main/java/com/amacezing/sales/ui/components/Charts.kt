@@ -236,6 +236,15 @@ fun BusinessComparisonCard(
             )
             Spacer(modifier = Modifier.height(14.dp))
 
+            if (comparison.isEmpty()) {
+                Text(
+                    "Add a business in Settings to compare your businesses side by side.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                return@Column
+            }
+
             val totalNet = comparison.sumOf { it.metrics.netSales }
 
             // Proportion bar: one segment per business, sized by net sales (equal when there are no sales).

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -94,6 +95,9 @@ fun DashboardScreen(
     val productStats by viewModel.productSalesStats.collectAsState()
     val businessComparison by viewModel.businessComparison.collectAsState()
     val trendData by viewModel.monthlyTrendData.collectAsState()
+    val allProducts by viewModel.allProducts.collectAsState()
+    val allTransactions by viewModel.allTransactions.collectAsState()
+    val businessList = com.amacezing.sales.ui.components.LocalBusinesses.current
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -102,6 +106,20 @@ fun DashboardScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // First-run guidance until a business, a product and a sale exist
+            if (businessList.isEmpty() || allProducts.isEmpty() || allTransactions.isEmpty()) {
+                item {
+                    GettingStartedCard(
+                        hasBusiness = businessList.isNotEmpty(),
+                        hasProduct = allProducts.isNotEmpty(),
+                        hasSale = allTransactions.isNotEmpty(),
+                        onAddBusiness = { viewModel.navigateTo(Screen.SETTINGS) },
+                        onAddProduct = { viewModel.navigateTo(Screen.PRODUCTS) },
+                        onNewSale = { viewModel.showNewTransactionDialog.value = true }
+                    )
+                }
+            }
+
             // Header + filters: one coherent block (title, BUSINESS, PERIOD)
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -451,6 +469,81 @@ fun DashboardScreen(
             item {
                 Spacer(modifier = Modifier.height(70.dp)) // Padding for bottom bar / FAB
             }
+        }
+    }
+}
+
+@Composable
+private fun GettingStartedCard(
+    hasBusiness: Boolean,
+    hasProduct: Boolean,
+    hasSale: Boolean,
+    onAddBusiness: () -> Unit,
+    onAddProduct: () -> Unit,
+    onNewSale: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("getting_started_card"),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.amacezing.sales.ui.theme.AppBorder),
+        colors = CardDefaults.cardColors(containerColor = com.amacezing.sales.ui.theme.AppSurfaceElevated)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Welcome to aMACEzing Sales", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(
+                "Set up your business in three quick steps. Your numbers appear here once you record sales.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            StartStep(1, "Add your first business", "Name, order prefix, colour and how profit is calculated.", hasBusiness, true, "Add business", onAddBusiness)
+            StartStep(2, "Add your products or services", "Selling prices and costs power profit estimates.", hasProduct, hasBusiness, "Add products", onAddProduct)
+            StartStep(3, "Record your first sale", "Create an order to see sales, profit and balances.", hasSale, hasBusiness, "New sale", onNewSale)
+        }
+    }
+}
+
+@Composable
+private fun StartStep(
+    number: Int,
+    title: String,
+    description: String,
+    done: Boolean,
+    enabled: Boolean,
+    actionLabel: String,
+    onAction: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(
+                    if (done) StatusPaid.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant,
+                    androidx.compose.foundation.shape.CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (done) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Done", tint = StatusPaid, modifier = Modifier.size(20.dp))
+            } else {
+                Text("$number", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Text(description, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (!done) {
+            androidx.compose.material3.OutlinedButton(
+                onClick = onAction,
+                enabled = enabled,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) { Text(actionLabel, fontSize = 12.sp) }
         }
     }
 }
