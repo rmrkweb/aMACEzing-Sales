@@ -84,3 +84,52 @@ class ConvertedQuotationProfitTest {
         assertEquals(3450.0, withCost, 0.001)
     }
 }
+
+class QuotationCloudMappingTest {
+    @Test
+    fun quotationRoundTripKeepsEverything() {
+        val original = com.amacezing.sales.model.QuotationWithItems(
+            quotation = com.amacezing.sales.model.Quotation(
+                id = 7,
+                quotationNumber = "QT-2026-0004",
+                businessType = "INVITATION_PRINTING",
+                customerName = "Ana Cruz",
+                customerPhone = "0917",
+                quotationDateEpochMillis = 1_700_000_000_000L,
+                validityDays = 10,
+                validUntilEpochMillis = 1_700_864_000_000L,
+                discountType = com.amacezing.sales.model.DiscountType.FIXED,
+                discountValue = 50.0,
+                grossTotal = 500.0,
+                discountAmount = 50.0,
+                netTotal = 450.0,
+                status = com.amacezing.sales.model.QuotationStatus.ACCEPTED,
+                remarks = "Rush",
+                createdAtEpochMillis = 1L,
+                updatedAtEpochMillis = 2L
+            ),
+            lineItems = listOf(
+                com.amacezing.sales.model.QuotationLineItem(
+                    id = 3, quotationId = 7, productId = null, productName = "Invitation",
+                    quantity = 50, unitPrice = 10.0, lineSubtotal = 500.0, notes = "Gold foil"
+                )
+            )
+        )
+        val cloud = FirestoreMappers.run { original.toFirestore("uid-1") }
+        assertEquals("QT-2026-0004", cloud.id)
+        val (room, lines) = FirestoreMappers.run { cloud.toRoomQuotation() }
+        assertEquals(original.quotation.copy(id = 0), room)
+        assertEquals(1, lines.size)
+        assertEquals(original.lineItems[0].copy(id = 0, quotationId = 0), lines[0])
+    }
+
+    @Test
+    fun unknownStatusFallsBackToDraft() {
+        val cloud = com.amacezing.sales.data.firebase.FirestoreQuotation(
+            id = "QT-2026-0001", quotationNumber = "QT-2026-0001", businessType = "ENGRAVING",
+            customerName = "X", status = "SOMETHING_NEW"
+        )
+        val (room, _) = FirestoreMappers.run { cloud.toRoomQuotation() }
+        assertEquals(com.amacezing.sales.model.QuotationStatus.DRAFT, room.status)
+    }
+}

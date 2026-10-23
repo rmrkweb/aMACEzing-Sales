@@ -255,12 +255,14 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         transactions: List<com.amacezing.sales.data.firebase.FirestoreTransaction>,
         settings: com.amacezing.sales.data.firebase.FirestoreSettings?,
         profile: com.amacezing.sales.data.firebase.FirestoreBusinessProfile?,
-        businesses: List<com.amacezing.sales.data.firebase.FirestoreBusiness> = emptyList()
+        businesses: List<com.amacezing.sales.data.firebase.FirestoreBusiness> = emptyList(),
+        quotations: List<com.amacezing.sales.data.firebase.FirestoreQuotation> = emptyList()
     ) {
         val logoPath = profile?.logoBase64
             ?.takeIf { it.isNotBlank() }
             ?.let { com.amacezing.sales.util.LogoCodec.decodeBase64ToFile(getApplication(), it) }
         repository.restoreCloudRecords(products, customers, transactions, settings, profile, logoPath, businesses)
+        repository.restoreQuotations(quotations)
         dedupeProductsEverywhere()
     }
 
@@ -284,6 +286,25 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    private suspend fun pushQuotationToCloud(id: Long) {
+        val details = repository.getQuotationSnapshot(id) ?: return
+        val uid = firestoreRepo.requireUserId()
+        firestoreRepo.saveQuotation(
+            com.amacezing.sales.data.firebase.FirestoreMappers.run { details.toFirestore(uid) }
+        )
+    }
+
+    /** Offline-first: the local change always stands; a failed upload is retried by the next full sync. */
+    private suspend fun tryPushQuotation(id: Long) {
+        try {
+            _syncStatus.value = SyncStatus.SYNCING
+            pushQuotationToCloud(id)
+            _syncStatus.value = SyncStatus.SYNCED
+        } catch (_: Exception) {
+            _syncStatus.value = SyncStatus.OFFLINE_SAVED
+        }
+    }
+
     /** Business profile as a cloud model, including the logo image. */
     private fun profileForCloud(
         profile: com.amacezing.sales.model.BusinessProfile,
@@ -304,14 +325,15 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 val remoteSettings = firestoreRepo.getSettings()
                 val remoteProfile = firestoreRepo.getBusinessProfile()
                 val remoteBusinesses = try { firestoreRepo.getBusinesses() } catch (_: Exception) { emptyList() }
+                val remoteQuotations = try { firestoreRepo.getQuotations() } catch (_: Exception) { emptyList() }
 
                 // Do not mark this as restored unless Firestore actually returned data.
-                if (remoteProducts.isEmpty() && remoteCustomers.isEmpty() && remoteTransactions.isEmpty() && remoteSettings == null && remoteProfile == null) {
+                if (remoteProducts.isEmpty() && remoteCustomers.isEmpty() && remoteTransactions.isEmpty() && remoteQuotations.isEmpty() && remoteSettings == null && remoteProfile == null) {
                     _syncStatus.value = SyncStatus.SYNCED
                     return@launch
                 }
 
-                restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile, remoteBusinesses)
+                restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile, remoteBusinesses, remoteQuotations)
                 _syncStatus.value = SyncStatus.SYNCED
                 snackbarMessage.value = "Cloud backup and business profile restored to this device."
             } catch (e: Exception) {
@@ -998,8 +1020,9 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 val remoteSettings = firestoreRepo.getSettings()
                 val remoteProfile = firestoreRepo.getBusinessProfile()
                 val remoteBusinesses = try { firestoreRepo.getBusinesses() } catch (_: Exception) { emptyList() }
-                if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteSettings != null || remoteProfile != null) {
-                    restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile, remoteBusinesses)
+                val remoteQuotations = try { firestoreRepo.getQuotations() } catch (_: Exception) { emptyList() }
+                if (remoteProducts.isNotEmpty() || remoteCustomers.isNotEmpty() || remoteTransactions.isNotEmpty() || remoteQuotations.isNotEmpty() || remoteSettings != null || remoteProfile != null) {
+                    restoreFromRemote(remoteProducts, remoteCustomers, remoteTransactions, remoteSettings, remoteProfile, remoteBusinesses, remoteQuotations)
                 }
             }
 
@@ -1030,6 +1053,11 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             step = "users/$uid/transactions"
             inParallel(allTransactions.value.map { it.transaction.id }) { id ->
                 pushTransactionToCloud(id)
+            }
+
+            step = "users/$uid/quotations"
+            inParallel(repository.getAllQuotationsSnapshot().map { it.quotation.id }) { id ->
+                pushQuotationToCloud(id)
             }
 
             step = "users/$uid/settings/default"
@@ -1272,6 +1300,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             val id = repository.saveQuotation(quotation, lineItems)
+            tryPushQuotation(id)
             snackbarMessage.value = "Quotation $quotationNumber created successfully!"
             showNewQuotationDialog.value = false
             onComplete(id)
@@ -1314,6 +1343,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
                 updatedAtEpochMillis = System.currentTimeMillis()
             )
             repository.updateQuotation(updated, lineItems)
+            tryPushQuotation(updated.id)
             snackbarMessage.value = "Quotation ${existing.quotationNumber} updated"
             editingQuotation.value = null
         }
@@ -1321,7 +1351,17 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteQuotation(id: Long) {
         viewModelScope.launch {
+            val number = repository.getQuotationSnapshot(id)?.quotation?.quotationNumber
             repository.deleteQuotation(id)
+            if (number != null) {
+                try {
+                    firestoreRepo.deleteQuotation(
+                        com.amacezing.sales.data.firebase.FirestoreMappers.cloudQuotationId(number)
+                    )
+                } catch (_: Exception) {
+                    // Offline: it stays in the cloud until deleted again while online.
+                }
+            }
             snackbarMessage.value = "Quotation deleted"
         }
     }
@@ -1329,6 +1369,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     fun updateQuotationStatus(id: Long, status: com.amacezing.sales.model.QuotationStatus) {
         viewModelScope.launch {
             repository.updateQuotationStatus(id, status)
+            tryPushQuotation(id)
             snackbarMessage.value = "Quotation status updated to ${status.displayName}"
         }
     }
@@ -1376,6 +1417,7 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             repository.markQuotationConverted(q.id, q.quotationNumber)
+            tryPushQuotation(q.id)
             snackbarMessage.value = "Quotation ${q.quotationNumber} successfully converted to official Order!"
             onComplete(q.quotationNumber)
         }

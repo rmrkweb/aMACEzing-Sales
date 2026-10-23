@@ -298,4 +298,21 @@ class PdfAndQuotationTest {
         assertEquals("Item C", edited.lineItems[0].productName)
         assertEquals(300.0, edited.quotation.netTotal, 0.001)
     }
+
+    @Test
+    fun testQuotationNumber_doesNotReuseNumberAfterDeletion() = runBlocking {
+        val millis = java.time.LocalDate.of(2026, 6, 1)
+            .atStartOfDay(java.time.ZoneId.of("Asia/Manila")).toInstant().toEpochMilli()
+        val first = repository.saveQuotation(
+            Quotation(quotationNumber = "QT-2026-0001", businessType = Business.SINTRA_BOARD_ID, customerName = "A", status = QuotationStatus.DRAFT),
+            emptyList()
+        )
+        repository.saveQuotation(
+            Quotation(quotationNumber = "QT-2026-0002", businessType = Business.SINTRA_BOARD_ID, customerName = "B", status = QuotationStatus.DRAFT),
+            emptyList()
+        )
+        repository.deleteQuotation(first)
+        // One row left, but 0002 exists: the next number must be 0003, not a duplicate 0002.
+        assertEquals("QT-2026-0003", repository.generateQuotationNumber(millis))
+    }
 }

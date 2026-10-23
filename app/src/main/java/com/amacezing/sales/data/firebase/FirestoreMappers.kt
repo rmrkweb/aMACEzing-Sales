@@ -267,6 +267,86 @@ object FirestoreMappers {
 
     // --- Resilient Enum Parsers with Fallbacks ---
 
+    fun cloudQuotationId(quotationNumber: String): String = quotationNumber.trim().replace("/", "-")
+
+    fun com.amacezing.sales.model.QuotationWithItems.toFirestore(userId: String): FirestoreQuotation {
+        val q = quotation
+        return FirestoreQuotation(
+            id = cloudQuotationId(q.quotationNumber),
+            userId = userId,
+            quotationNumber = q.quotationNumber,
+            businessType = q.businessType,
+            customerName = q.customerName,
+            customerPhone = q.customerPhone,
+            customerEmail = q.customerEmail,
+            customerAddress = q.customerAddress,
+            quotationDateEpochMillis = q.quotationDateEpochMillis,
+            validityDays = q.validityDays,
+            validUntilEpochMillis = q.validUntilEpochMillis,
+            discountType = q.discountType.name,
+            discountValue = q.discountValue,
+            grossTotal = q.grossTotal,
+            discountAmount = q.discountAmount,
+            netTotal = q.netTotal,
+            status = q.status.name,
+            remarks = q.remarks,
+            convertedTransactionId = q.convertedTransactionId,
+            createdAtEpochMillis = q.createdAtEpochMillis,
+            updatedAtEpochMillis = q.updatedAtEpochMillis,
+            lineItems = lineItems.map {
+                FirestoreQuotationLine(
+                    productId = it.productId,
+                    productName = it.productName,
+                    quantity = it.quantity,
+                    unitPrice = it.unitPrice,
+                    lineSubtotal = it.lineSubtotal,
+                    notes = it.notes
+                )
+            }
+        )
+    }
+
+    /** Local ids are generated on insert, so the restored quotation and lines start at id 0. */
+    fun FirestoreQuotation.toRoomQuotation(): Pair<com.amacezing.sales.model.Quotation, List<com.amacezing.sales.model.QuotationLineItem>> {
+        val room = com.amacezing.sales.model.Quotation(
+            quotationNumber = quotationNumber.ifBlank { id },
+            businessType = parseBusinessType(businessType),
+            customerName = customerName.ifBlank { "Customer" },
+            customerPhone = customerPhone,
+            customerEmail = customerEmail,
+            customerAddress = customerAddress,
+            quotationDateEpochMillis = quotationDateEpochMillis,
+            validityDays = validityDays,
+            validUntilEpochMillis = validUntilEpochMillis,
+            discountType = parseDiscountType(discountType),
+            discountValue = discountValue,
+            grossTotal = grossTotal,
+            discountAmount = discountAmount,
+            netTotal = netTotal,
+            status = try {
+                com.amacezing.sales.model.QuotationStatus.valueOf(status)
+            } catch (_: Exception) {
+                com.amacezing.sales.model.QuotationStatus.DRAFT
+            },
+            remarks = remarks,
+            convertedTransactionId = convertedTransactionId,
+            createdAtEpochMillis = createdAtEpochMillis,
+            updatedAtEpochMillis = updatedAtEpochMillis
+        )
+        val lines = lineItems.map {
+            com.amacezing.sales.model.QuotationLineItem(
+                quotationId = 0,
+                productId = it.productId,
+                productName = it.productName,
+                quantity = it.quantity,
+                unitPrice = it.unitPrice,
+                lineSubtotal = it.lineSubtotal,
+                notes = it.notes
+            )
+        }
+        return room to lines
+    }
+
     /** Cloud document id is the lower-case business id, matching the documents seeded earlier. */
     fun com.amacezing.sales.model.Business.toFirestore(userId: String): FirestoreBusiness =
         FirestoreBusiness(

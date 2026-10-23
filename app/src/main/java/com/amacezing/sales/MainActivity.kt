@@ -304,7 +304,7 @@ fun MainAppScaffold(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Engraving & Sintra Board Printing Manager",
+                            text = "Manage Your Business. Grow Your Sales",
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

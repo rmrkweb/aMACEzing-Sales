@@ -8,8 +8,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
@@ -147,7 +145,6 @@ fun BusinessColorPicker(
 }
 
 /** Grid of selectable business icons, tinted with the business colour when selected. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BusinessIconPicker(
     selectedKey: String?,
@@ -156,10 +153,9 @@ fun BusinessIconPicker(
     modifier: Modifier = Modifier
 ) {
     val current = selectedKey ?: BusinessIcons.first().first
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Row(
+        modifier = modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         BusinessIcons.forEach { (key, icon) ->
             val selected = key == current

@@ -67,6 +67,18 @@ service cloud.firestore {
              data.outstandingBalance is number && data.outstandingBalance >= 0;
     }
 
+    // Quotation
+    function isValidQuotation(data, userId) {
+      return data.id is string &&
+             data.userId == userId &&
+             data.quotationNumber is string && data.quotationNumber.size() > 0 &&
+             data.businessType is string && data.businessType.size() > 0 &&
+             data.customerName is string && data.customerName.size() > 0 &&
+             data.grossTotal is number && data.grossTotal >= 0 &&
+             data.netTotal is number && data.netTotal >= 0 &&
+             data.status in ['DRAFT', 'SENT', 'ACCEPTED', 'DECLINED', 'CONVERTED'];
+    }
+
     // Settings
     function isValidSettings(data, userId) {
       return data.id is string &&
@@ -117,6 +129,13 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && isValidTransaction(incoming(), userId);
         allow update: if isOwner(userId) && isValidTransaction(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      match /quotations/{quotationId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidQuotation(incoming(), userId);
+        allow update: if isOwner(userId) && isValidQuotation(incoming(), userId) && incoming().userId == existing().userId;
         allow delete: if isOwner(userId);
       }
 

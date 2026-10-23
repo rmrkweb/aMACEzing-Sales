@@ -16,6 +16,7 @@ import com.amacezing.sales.util.Formatters
 import com.amacezing.sales.util.SalesCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.util.UUID
@@ -323,9 +324,14 @@ class SalesRepository(private val database: AppDatabase) {
             val year = Instant.ofEpochMilli(dateMillis)
                 .atZone(Formatters.MANILA_ZONE_ID)
                 .year
-            val count = quotationDao.countQuotations()
-            var sequence = count + 1
-            String.format("QT-%d-%04d", year, sequence)
+            // Next number = highest existing sequence for the year + 1. (Counting rows would reuse a number
+            // after a deletion, which now matters because the number identifies the quotation in the cloud.)
+            val prefix = "QT-$year-"
+            val highest = quotationDao.getAllQuotationNumbers()
+                .filter { it.startsWith(prefix) }
+                .mapNotNull { it.removePrefix(prefix).toIntOrNull() }
+                .maxOrNull() ?: 0
+            String.format("QT-%d-%04d", year, highest + 1)
         }
     }
 
@@ -350,6 +356,25 @@ class SalesRepository(private val database: AppDatabase) {
             quotationDao.insertLineItems(lineItems.map { it.copy(id = 0, quotationId = quotation.id) })
         }
     }
+
+    suspend fun getAllQuotationsSnapshot(): List<com.amacezing.sales.model.QuotationWithItems> =
+        withContext(Dispatchers.IO) { quotationDao.getAllQuotations().first() }
+
+    /** Restores cloud quotations, skipping any number already present locally. Returns how many were added. */
+    suspend fun restoreQuotations(cloud: List<com.amacezing.sales.data.firebase.FirestoreQuotation>): Int =
+        withContext(Dispatchers.IO) {
+            val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
+            val existing = quotationDao.getAllQuotationNumbers().toSet()
+            var added = 0
+            for (doc in cloud) {
+                val (quotation, lines) = mapper.run { doc.toRoomQuotation() }
+                if (quotation.quotationNumber in existing) continue
+                val id = quotationDao.insertQuotation(quotation)
+                quotationDao.insertLineItems(lines.map { it.copy(quotationId = id) })
+                added++
+            }
+            added
+        }
 
     suspend fun deleteQuotation(id: Long) = withContext(Dispatchers.IO) {
         quotationDao.deleteQuotationById(id)

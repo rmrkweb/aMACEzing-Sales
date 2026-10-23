@@ -60,6 +60,9 @@ interface QuotationDao {
     @Query("SELECT COUNT(*) FROM quotations")
     suspend fun countQuotations(): Int
 
+    @Query("SELECT quotationNumber FROM quotations")
+    suspend fun getAllQuotationNumbers(): List<String>
+
     @Query("SELECT quotationNumber FROM quotations ORDER BY id DESC LIMIT 1")
     suspend fun getLatestQuotationNumber(): String?
 }

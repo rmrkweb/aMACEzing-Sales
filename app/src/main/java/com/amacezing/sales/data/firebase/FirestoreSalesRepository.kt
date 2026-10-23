@@ -6,12 +6,14 @@ import com.amacezing.sales.data.repository.BusinessProfileRepository
 import com.amacezing.sales.data.repository.BusinessRepository
 import com.amacezing.sales.data.repository.CustomerRepository
 import com.amacezing.sales.data.repository.ProductRepository
+import com.amacezing.sales.data.repository.QuotationRepository
 import com.amacezing.sales.data.repository.SettingsRepository
 import com.amacezing.sales.data.repository.TransactionRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreBusinessProfileRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreBusinessRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreCustomerRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreProductRepository
+import com.amacezing.sales.data.repository.firestore.FirestoreQuotationRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreSettingsRepository
 import com.amacezing.sales.data.repository.firestore.FirestoreTransactionRepository
 import com.google.firebase.Firebase
@@ -31,6 +33,7 @@ class FirestoreSalesRepository(
     ProductRepository,
     CustomerRepository,
     TransactionRepository,
+    QuotationRepository,
     SettingsRepository,
     BusinessProfileRepository {
 
@@ -39,6 +42,7 @@ class FirestoreSalesRepository(
     val productRepo: ProductRepository = FirestoreProductRepository(db, auth)
     val customerRepo: CustomerRepository = FirestoreCustomerRepository(db, auth)
     val transactionRepo: TransactionRepository = FirestoreTransactionRepository(db, auth)
+    val quotationRepo: QuotationRepository = FirestoreQuotationRepository(db, auth)
     val settingsRepo: SettingsRepository = FirestoreSettingsRepository(db, auth)
     val businessProfileRepo: BusinessProfileRepository = FirestoreBusinessProfileRepository(db, auth)
 
@@ -96,6 +100,10 @@ class FirestoreSalesRepository(
     override suspend fun saveBusiness(business: FirestoreBusiness) = businessRepo.saveBusiness(business)
     override suspend fun deleteBusiness(businessId: String) = businessRepo.deleteBusiness(businessId)
     override suspend fun seedDefaultBusinessesIfEmpty() = businessRepo.seedDefaultBusinessesIfEmpty()
+
+    override suspend fun getQuotations(): List<FirestoreQuotation> = quotationRepo.getQuotations()
+    override suspend fun saveQuotation(quotation: FirestoreQuotation) = quotationRepo.saveQuotation(quotation)
+    override suspend fun deleteQuotation(quotationId: String) = quotationRepo.deleteQuotation(quotationId)
 
     // --- Product Delegation ---
     override fun observeProducts(): Flow<List<FirestoreProduct>> = productRepo.observeProducts()

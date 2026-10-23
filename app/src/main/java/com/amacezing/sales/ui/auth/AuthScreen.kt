@@ -331,7 +331,7 @@ Spacer(modifier = Modifier.height(18.dp))
 
                     // --- 3. Subtitle ---
                     Text(
-                        text = "Engraving & Sintra Board Printing Manager",
+                        text = "Manage Your Business. Grow Your Sales",
                         color = TechTextSecondary,
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Normal,

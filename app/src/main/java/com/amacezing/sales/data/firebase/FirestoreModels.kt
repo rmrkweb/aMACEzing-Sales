@@ -104,6 +104,43 @@ data class FirestoreTransaction(
 )
 
 @IgnoreExtraProperties
+data class FirestoreQuotationLine(
+    val productId: Long? = null,
+    val productName: String = "",
+    val quantity: Int = 0,
+    val unitPrice: Double = 0.0,
+    val lineSubtotal: Double = 0.0,
+    val notes: String = ""
+)
+
+/** A quotation with its lines embedded. The document id is the quotation number (e.g. QT-2026-0001). */
+@IgnoreExtraProperties
+data class FirestoreQuotation(
+    val id: String = "",
+    val userId: String = "",
+    val quotationNumber: String = "",
+    val businessType: String = "",
+    val customerName: String = "",
+    val customerPhone: String = "",
+    val customerEmail: String = "",
+    val customerAddress: String = "",
+    val quotationDateEpochMillis: Long = 0L,
+    val validityDays: Int = 7,
+    val validUntilEpochMillis: Long = 0L,
+    val discountType: String = "PERCENTAGE",
+    val discountValue: Double = 0.0,
+    val grossTotal: Double = 0.0,
+    val discountAmount: Double = 0.0,
+    val netTotal: Double = 0.0,
+    val status: String = "DRAFT",
+    val remarks: String = "",
+    val convertedTransactionId: String? = null,
+    val createdAtEpochMillis: Long = 0L,
+    val updatedAtEpochMillis: Long = 0L,
+    val lineItems: List<FirestoreQuotationLine> = emptyList()
+)
+
+@IgnoreExtraProperties
 data class FirestoreSettings(
     val id: String = "default",
     val userId: String = "",
