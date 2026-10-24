@@ -22,6 +22,8 @@ import com.amacezing.sales.util.ExistingOrderRef
 import com.amacezing.sales.util.ImportContext
 import com.amacezing.sales.util.ImportEngine
 import com.amacezing.sales.util.ImportPlan
+import com.amacezing.sales.util.ProductImportEngine
+import com.amacezing.sales.util.ProductImportPlan
 import com.amacezing.sales.util.ProductRef
 import com.amacezing.sales.util.TabularReader
 import com.amacezing.sales.util.LineItemInput
@@ -158,6 +160,16 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
     val importError = MutableStateFlow<String?>(null)
     val importIncludeDuplicates = MutableStateFlow(false)
     val isImporting = MutableStateFlow(false)
+
+    // Product import (CSV / Excel upload into the catalog of one chosen business)
+    val productImportBusinessId = MutableStateFlow<String?>(null)
+    val productImportFileName = MutableStateFlow<String?>(null)
+    val productImportPlan = MutableStateFlow<ProductImportPlan?>(null)
+    val productImportError = MutableStateFlow<String?>(null)
+    val productImportUpdateExisting = MutableStateFlow(false)
+    val isImportingProducts = MutableStateFlow(false)
+    /** Rows of the loaded file, kept so changing the business re-checks without re-reading the file. */
+    private var productImportRows: List<List<String>>? = null
 
     // Raw Room flows
     val allTransactions: StateFlow<List<TransactionWithDetails>> = repository.allTransactions
@@ -1239,6 +1251,141 @@ class SalesViewModel(application: Application) : AndroidViewModel(application) {
             } finally {
                 isImporting.value = false
             }
+        }
+    }
+
+    // --- Product import (CSV / Excel upload) ---
+    fun selectProductImportBusiness(businessId: String) {
+        if (productImportBusinessId.value == businessId) return
+        productImportBusinessId.value = businessId
+        if (productImportRows != null) viewModelScope.launch { revalidateProductImport() }
+    }
+
+    fun clearProductImport() {
+        productImportRows = null
+        productImportFileName.value = null
+        productImportPlan.value = null
+        productImportError.value = null
+        productImportUpdateExisting.value = false
+    }
+
+    /** Reads and validates an uploaded product file; nothing is saved until [executeProductImport]. */
+    fun loadProductImportFile(fileName: String, bytes: ByteArray) {
+        if (productImportBusinessId.value == null) {
+            productImportError.value = "Choose a business first."
+            return
+        }
+        viewModelScope.launch {
+            productImportError.value = null
+            productImportPlan.value = null
+            productImportUpdateExisting.value = false
+            productImportRows = null
+            productImportFileName.value = fileName
+            try {
+                val rows = withContext(Dispatchers.Default) { TabularReader.read(fileName, bytes) }
+                productImportRows = rows
+                revalidateProductImport()
+            } catch (e: IllegalArgumentException) {
+                productImportError.value = e.message ?: "This file can't be imported."
+            } catch (e: Exception) {
+                productImportError.value = "Couldn't read this file. Check that it is a valid CSV or Excel (.xlsx) file."
+            }
+        }
+    }
+
+    private suspend fun revalidateProductImport() {
+        val rows = productImportRows ?: return
+        val businessId = productImportBusinessId.value ?: return
+        val catalog = repository.getProductsSnapshot()
+        productImportPlan.value = withContext(Dispatchers.Default) {
+            ProductImportEngine.validate(
+                rows,
+                businessId,
+                catalog.map { ProductRef(it.id, it.businessType, it.name, it.unitCost) }
+            )
+        }
+    }
+
+    /** Saves the valid rows locally, then uploads each saved product to Firestore and reports how many synced. */
+    fun executeProductImport() {
+        val plan = productImportPlan.value ?: return
+        val businessId = productImportBusinessId.value ?: return
+        if (isImportingProducts.value) return
+        val toSave = plan.rowsToSave(productImportUpdateExisting.value)
+        if (toSave.isEmpty()) return
+
+        viewModelScope.launch {
+            isImportingProducts.value = true
+            productImportError.value = null
+            val saved = mutableListOf<Product>()
+            var failure: Exception? = null
+            try {
+                val catalog = repository.getProductsSnapshot().associateBy { it.id }
+                for (row in toSave) {
+                    val existing = row.existingId?.let { catalog[it] }
+                    val product = existing?.copy(
+                        sellingPrice = row.sellingPrice,
+                        unitCost = row.unitCost,
+                        isActive = row.isActive
+                    ) ?: Product(
+                        name = row.name,
+                        businessType = businessId,
+                        sellingPrice = row.sellingPrice,
+                        unitCost = row.unitCost,
+                        isActive = row.isActive
+                    )
+                    val id = repository.saveProduct(product)
+                    saved += if (product.id > 0) product else product.copy(id = id)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failure = e
+            }
+
+            // Upload whatever was saved, even after a partial failure. Anything that doesn't reach
+            // Firestore stays in Room and goes up with the next cloud sync.
+            var synced = 0
+            if (saved.isNotEmpty()) {
+                try {
+                    _syncStatus.value = SyncStatus.SYNCING
+                    val uid = firestoreRepo.requireUserId()
+                    val mapper = com.amacezing.sales.data.firebase.FirestoreMappers
+                    val counter = java.util.concurrent.atomic.AtomicInteger(0)
+                    inParallel(saved) { p ->
+                        try {
+                            firestoreRepo.saveProduct(mapper.run { p.toFirestore(uid) })
+                            counter.incrementAndGet()
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            // Offline or rejected: kept locally, retried by the next sync.
+                        }
+                    }
+                    synced = counter.get()
+                    _syncStatus.value = if (synced == saved.size) SyncStatus.SYNCED else SyncStatus.OFFLINE_SAVED
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    _syncStatus.value = SyncStatus.OFFLINE_SAVED
+                }
+            }
+
+            isImportingProducts.value = false
+            val count = saved.size
+            val noun = "product${if (count == 1) "" else "s"}"
+            if (failure != null) {
+                productImportError.value =
+                    "Import stopped: ${failure.message ?: "unexpected error"}. $count $noun already imported were kept."
+                return@launch
+            }
+            clearProductImport()
+            snackbarMessage.value = when {
+                synced == count -> "Imported $count $noun and synced to the cloud."
+                synced == 0 -> "Imported $count $noun. Saved on this device; they'll sync when you're back online."
+                else -> "Imported $count $noun. $synced synced; ${count - synced} will sync when you're back online."
+            }
+            navigateTo(Screen.PRODUCTS)
         }
     }
 

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.amacezing.sales.model.BusinessType
 import com.amacezing.sales.model.Product
+import com.amacezing.sales.util.ProductInputRules
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,16 +191,16 @@ fun ProductDialog(
                 label = "Save Product",
                 icon = Icons.Default.Check,
                 onClick = {
-                    if (name.isBlank()) {
-                        errorMessage = "Product name cannot be empty."
+                    ProductInputRules.nameError(name)?.let {
+                        errorMessage = it
                         return@PrimaryActionButton
                     }
-                    val selling = sellingPriceText.toDoubleOrNull()
-                    if (selling == null || selling < 0.0) {
-                        errorMessage = "Please enter a valid selling price."
+                    val selling = ProductInputRules.validSellingPrice(sellingPriceText.toDoubleOrNull())
+                    if (selling == null) {
+                        errorMessage = ProductInputRules.SELLING_PRICE_INVALID
                         return@PrimaryActionButton
                     }
-                    val cost = unitCostText.toDoubleOrNull() ?: 0.0
+                    val cost = ProductInputRules.lenientUnitCost(unitCostText)
 
                     val product = initialProduct?.copy(
                         name = name.trim(),

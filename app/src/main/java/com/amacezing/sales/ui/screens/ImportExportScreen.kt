@@ -6,6 +6,15 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import com.amacezing.sales.ui.theme.AccentCyan
+import com.amacezing.sales.ui.components.CompactFilterChip
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,9 +62,9 @@ import com.amacezing.sales.util.Formatters
 import com.amacezing.sales.util.ImportTemplate
 import com.amacezing.sales.viewmodel.SalesViewModel
 
-private const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+internal const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-private fun readUpload(context: android.content.Context, uri: Uri): Pair<String, ByteArray>? {
+internal fun readUpload(context: android.content.Context, uri: Uri): Pair<String, ByteArray>? {
     val resolver = context.contentResolver
     val displayName: String? = try {
         resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
@@ -86,7 +95,7 @@ private fun readUpload(context: android.content.Context, uri: Uri): Pair<String,
     return name to bytes
 }
 
-private fun writeTo(context: android.content.Context, uri: Uri, bytes: ByteArray): Boolean = try {
+internal fun writeTo(context: android.content.Context, uri: Uri, bytes: ByteArray): Boolean = try {
     context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } != null
 } catch (_: Exception) { false }
 
@@ -103,6 +112,7 @@ fun ImportExportScreen(
     val error by viewModel.importError.collectAsState()
     val includeDuplicates by viewModel.importIncludeDuplicates.collectAsState()
     val isImporting by viewModel.isImporting.collectAsState()
+    var showProducts by rememberSaveable { mutableStateOf(false) }
 
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -157,7 +167,7 @@ fun ImportExportScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            "Bring in past orders from a spreadsheet, or export your orders to CSV",
+                            "Bring in past orders or products from a spreadsheet, or export your orders to CSV",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -173,6 +183,34 @@ fun ImportExportScreen(
                 }
             }
 
+            item {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CompactFilterChip(
+                        label = "Orders",
+                        selected = !showProducts,
+                        onClick = { showProducts = false },
+                        selectedColor = AccentCyan,
+                        leadingIcon = Icons.Default.Receipt,
+                        modifier = Modifier.testTag("import_mode_orders")
+                    )
+                    CompactFilterChip(
+                        label = "Products",
+                        selected = showProducts,
+                        onClick = { showProducts = true },
+                        selectedColor = AccentCyan,
+                        leadingIcon = Icons.Default.Inventory2,
+                        modifier = Modifier.testTag("import_mode_products")
+                    )
+                }
+            }
+
+            if (showProducts) {
+                item { ProductImportPanel(viewModel = viewModel) }
+            } else {
             // Instructions
             item {
                 Surface(
@@ -402,6 +440,8 @@ fun ImportExportScreen(
                 }
             }
 
+            }
+
             item { Spacer(modifier = Modifier.height(70.dp)) }
         }
     }
@@ -410,7 +450,7 @@ fun ImportExportScreen(
 private fun Modifier.heightIn48(): Modifier = this.then(Modifier.height(48.dp))
 
 @Composable
-private fun SummaryTile(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
+internal fun SummaryTile(label: String, value: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = color.copy(alpha = 0.12f),
