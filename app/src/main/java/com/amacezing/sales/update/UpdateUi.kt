@@ -212,29 +212,13 @@ fun UpdateSettingsCard(modifier: Modifier = Modifier) {
 
                 Spacer(modifier = Modifier.width(10.dp))
 
-                Button(
+                com.amacezing.sales.ui.components.PrimaryActionButton(
+                    label = if (controller.phase is UpdatePhase.Checking) "Checking…" else "Check for Updates",
+                    icon = if (controller.phase is UpdatePhase.Checking) null else Icons.Default.CloudDownload,
                     onClick = { controller.check(silent = false) },
                     enabled = controller.phase !is UpdatePhase.Checking && controller.phase !is UpdatePhase.Downloading,
                     modifier = Modifier.testTag("check_for_updates_button")
-                ) {
-                    if (controller.phase is UpdatePhase.Checking) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Checking...")
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.CloudDownload,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Check for Updates")
-                    }
-                }
+                )
             }
         }
     }

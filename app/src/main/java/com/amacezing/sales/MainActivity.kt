@@ -294,7 +294,7 @@ fun MainAppScaffold(
             .windowInsetsPadding(WindowInsets.statusBars),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (currentScreen != Screen.PROFILE && currentScreen != Screen.ABOUT) TopAppBar(
+            if (currentScreen != Screen.PROFILE && currentScreen != Screen.ABOUT && currentScreen != Screen.COFFEE) TopAppBar(
                 title = {
                     Column {
                         Text(
@@ -362,7 +362,7 @@ fun MainAppScaffold(
             )
         },
         bottomBar = {
-            if (currentScreen != Screen.PROFILE && currentScreen != Screen.ABOUT) NavigationBar(
+            if (currentScreen != Screen.PROFILE && currentScreen != Screen.ABOUT && currentScreen != Screen.COFFEE) NavigationBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars),
@@ -438,6 +438,10 @@ fun MainAppScaffold(
                     Screen.IMPORT_EXPORT -> ImportExportScreen(viewModel = viewModel)
                     Screen.SETTINGS -> SettingsScreen(viewModel = viewModel)
                     Screen.ABOUT -> com.amacezing.sales.ui.screens.AboutScreen(
+                        viewModel = viewModel,
+                        onBack = { viewModel.handleBack() }
+                    )
+                    Screen.COFFEE -> com.amacezing.sales.ui.screens.CoffeeScreen(
                         viewModel = viewModel,
                         onBack = { viewModel.handleBack() }
                     )

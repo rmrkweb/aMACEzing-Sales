@@ -3,6 +3,7 @@ package com.amacezing.sales.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -26,5 +27,6 @@ enum class Screen(val title: String, val icon: ImageVector) {
     REPORTS("Reports", Icons.Default.Analytics),
     IMPORT_EXPORT("Import & Export", Icons.Default.FileUpload),
     SETTINGS("Settings", Icons.Default.Settings),
-    ABOUT("About", Icons.Default.Info)
+    ABOUT("About", Icons.Default.Info),
+    COFFEE("Buy me a coffee", Icons.Default.Coffee)
 }

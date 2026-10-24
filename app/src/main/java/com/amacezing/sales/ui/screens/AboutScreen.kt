@@ -3,6 +3,9 @@ package com.amacezing.sales.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import com.amacezing.sales.ui.navigation.Screen
+import com.amacezing.sales.ui.components.PrimaryActionButton
+import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -98,7 +101,40 @@ fun AboutScreen(
             }
         }
 
-        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth().testTag("about_coffee_card"),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            border = BorderStroke(1.dp, AppBorder)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    ) {
+                        Icon(
+                            Icons.Default.Coffee,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(10.dp).size(28.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Like this app?", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("Coffee fuels great apps ♡", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                PrimaryActionButton(
+                    label = "Buy me a coffee",
+                    icon = Icons.Default.Coffee,
+                    onClick = { viewModel.navigateTo(Screen.COFFEE) },
+                    modifier = Modifier.fillMaxWidth().testTag("about_coffee_button")
+                )
+            }
+        }
+
+        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), border = BorderStroke(1.dp, AppBorder), modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
@@ -109,17 +145,19 @@ fun AboutScreen(
                     }
                     if (syncStatus == SyncStatus.SYNCING) CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
-                Button(onClick = { viewModel.syncAllToCloud() }, enabled = syncStatus != SyncStatus.SYNCING, modifier = Modifier.fillMaxWidth().testTag("about_sync_button")) {
-                    Icon(Icons.Default.CloudSync, contentDescription = null)
-                    Spacer(Modifier.size(8.dp))
-                    Text(if (syncStatus == SyncStatus.SYNCING) "Syncing…" else "Sync to Cloud")
-                }
+                PrimaryActionButton(
+                    label = if (syncStatus == SyncStatus.SYNCING) "Syncing…" else "Sync to Cloud",
+                    icon = Icons.Default.CloudSync,
+                    enabled = syncStatus != SyncStatus.SYNCING,
+                    onClick = { viewModel.syncAllToCloud() },
+                    modifier = Modifier.fillMaxWidth().testTag("about_sync_button")
+                )
             }
         }
 
         UpdateSettingsCard(modifier = Modifier.fillMaxWidth())
 
-        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), modifier = Modifier.fillMaxWidth()) {
+        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), border = BorderStroke(1.dp, AppBorder), modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth().clickable {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://rmrkweb.github.io")))

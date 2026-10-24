@@ -257,6 +257,10 @@ Quotations and receipts are generated as A4 PDFs and previewed in the app before
 
 ---
 
+## "Buy me a coffee" tip QR
+
+The About screen links to a "Buy me a coffee" page that shows the tip QR code. The image is **not bundled in the app**: it is loaded from this repository at `tip/coffee-tip.png` on the `main` branch (see `util/CoffeeTip.kt`). To change the QR, replace that file and commit it; the app caches the image for 5 minutes at most (GitHub's CDN also caches for about 5 minutes), so the new QR shows up within roughly 5–10 minutes with no new build. "View / Download QR" saves the current image to `Pictures/aMACEzing` on Android 10 and later (older versions open it in the browser).
+
 ## Importing and exporting data
 
 - **Excel migration:** paste or load CSV content exported from your existing workbook, choose the business and sheet, preview the parsed rows and validation results, then import. Duplicate order numbers are detected.
