@@ -178,6 +178,7 @@ Tap an order to open its details. From there you can:
 
 - Search by order number, customer or product.
 - Filter by payment status and by business.
+- Choose the **period** (All Time, Today, This Week, This Month, This Year or a Custom Range) with the chips under the business chips. The list only shows orders inside that period. The period is shared with Home and Reports, so changing it on one page changes it on the others.
 - Sort by newest date or by highest net sales.
 
 ---
@@ -200,7 +201,7 @@ Home gives you a live summary of your business.
 
 ## Reports
 
-Open **Sales Reports** from your Profile page for detailed summaries. Use the business chips to focus on one business:
+Open **Sales Reports** from your Profile page for detailed summaries. Use the business chips to focus on one business and the period chips (including **Custom Range**) to choose the dates:
 
 - Sales and profit summary
 - Product quantity and sales summary
