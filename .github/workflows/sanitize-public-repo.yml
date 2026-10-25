@@ -1,0 +1,167 @@
+name: Sanitize public repo (one-time)
+
+# PUT THIS FILE IN THE PUBLIC RELEASES REPO ONLY (.github/workflows/), never in the private dev repo.
+#
+# Phase 1 replaces the source history on the default branch with a tiny README + tip/coffee-tip.png.
+#         Run it BEFORE publishing the first release from the private repo, so that release's tag
+#         points at a clean commit.
+# Phase 2 deletes every old release and tag except the one you keep (the new, clean release).
+#         Old releases still expose the old source through GitHub's auto "Source code" archives.
+#
+# Needs the secret CLEANUP_PAT in this repo: a fine-grained token limited to this repo with
+# Contents: read/write and Workflows: read/write (pushing a commit that removes workflow files
+# is refused with the normal workflow token).
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Phase to run'
+        required: true
+        type: choice
+        options:
+          - '1-replace-source-history'
+          - '2-delete-old-releases'
+      confirm:
+        description: 'Type SANITIZE to confirm (this rewrites history and deletes releases)'
+        required: true
+        type: string
+      keep_tag:
+        description: 'Phase 2 only: tag of the new clean release to keep, e.g. v26.10.25.1-b57'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sanitize-public-repo
+  cancel-in-progress: false
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.CLEANUP_PAT }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Guard
+        shell: bash
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          [ "$CONFIRM" = "SANITIZE" ] || { echo "::error::Type SANITIZE in the confirm box."; exit 1; }
+          [ -n "${GH_TOKEN:-}" ] || { echo "::error::Secret CLEANUP_PAT is missing."; exit 1; }
+          # The app loads the tip QR from the branch named main (CoffeeTip.BRANCH).
+          [ "$DEFAULT_BRANCH" = "main" ] || { echo "::error::Default branch must be 'main'."; exit 1; }
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CLEANUP_PAT }}
+
+      - name: Phase 1 - replace source history with a clean commit
+        if: ${{ inputs.phase == '1-replace-source-history' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f tip/coffee-tip.png || { echo "::error::tip/coffee-tip.png not found on main; nothing to keep."; exit 1; }
+
+          CLEAN="$RUNNER_TEMP/clean"
+          rm -rf "$CLEAN"; mkdir -p "$CLEAN/tip"
+          cp tip/coffee-tip.png "$CLEAN/tip/coffee-tip.png"
+
+          cat > "$CLEAN/README.md" <<'README'
+          # aMACEzing Sales
+
+          Manage your business. Grow your sales.
+
+          aMACEzing Sales is an Android app for recording orders, quotations, products and customers,
+          and tracking sales and profit across your businesses.
+
+          ## Download
+
+          Get the latest APK from the [Releases](../../releases/latest) page and install it on your
+          Android phone. After the first install the app can update itself from **About > Check for updates**.
+
+          ## Source code
+
+          The source code is private. This repository only hosts public releases and the tip QR image.
+
+          ## Support the app
+
+          If you like the app, open **About > Buy me a coffee** inside the app. Thank you!
+
+          Copyright (c) Reymark Aguila. All rights reserved.
+          README
+
+          # Keep this workflow on main so phase 2 can still be started afterwards.
+          mkdir -p "$CLEAN/.github/workflows"
+          cp .github/workflows/sanitize-public-repo.yml "$CLEAN/.github/workflows/"
+
+          cd "$CLEAN"
+          git init -q -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Public releases repository"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git push --force origin HEAD:refs/heads/main
+
+          # Delete every other branch (they hold source history too). Tags are handled in phase 2.
+          for b in $(git ls-remote --heads origin | sed -E 's#.*refs/heads/##' | grep -vx main || true); do
+            echo "Deleting branch $b"
+            git push origin --delete "$b" || true
+          done
+          echo "Done. main now holds only README.md, tip/coffee-tip.png and this workflow."
+          echo "Next: publish the first release from the private repo, then run phase 2."
+
+      - name: Phase 2 - verify the release to keep
+        if: ${{ inputs.phase == '2-delete-old-releases' }}
+        shell: bash
+        env:
+          KEEP_TAG: ${{ inputs.keep_tag }}
+        run: |
+          set -euo pipefail
+          [ -n "$KEEP_TAG" ] || { echo "::error::Enter keep_tag (the new clean release's tag)."; exit 1; }
+          git fetch --tags --force origin
+          git rev-parse -q --verify "refs/tags/$KEEP_TAG" >/dev/null || { echo "::error::Tag $KEEP_TAG not found."; exit 1; }
+
+          # The kept tag must not contain any source files.
+          if git ls-tree -r --name-only "refs/tags/$KEEP_TAG" | grep -E '(^app/|^gradle|\.kt$|\.kts$|\.java$)'; then
+            echo "::error::$KEEP_TAG still contains source files. Re-run phase 1, then publish a new release and use that tag."
+            exit 1
+          fi
+
+          gh release view "$KEEP_TAG" --repo "$REPO" --json isDraft,isPrerelease,assets \
+            --jq 'if .isDraft or .isPrerelease then error("kept release is draft/pre-release") else .assets[].name end' \
+            | grep -qi '\.apk$' || { echo "::error::Kept release has no .apk asset."; exit 1; }
+          echo "Keeping $KEEP_TAG (clean, published, has an APK)."
+
+      - name: Phase 2 - delete old releases and tags
+        if: ${{ inputs.phase == '2-delete-old-releases' }}
+        shell: bash
+        env:
+          KEEP_TAG: ${{ inputs.keep_tag }}
+        run: |
+          set -euo pipefail
+          for tag in $(gh release list --repo "$REPO" --limit 1000 --json tagName --jq '.[].tagName'); do
+            if [ "$tag" != "$KEEP_TAG" ]; then
+              echo "Deleting release and tag $tag"
+              gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes
+            fi
+          done
+          # Tags that had no release attached.
+          for tag in $(git ls-remote --tags origin | sed -E 's#.*refs/tags/##; s#\^\{\}$##' | sort -u); do
+            if [ "$tag" != "$KEEP_TAG" ]; then
+              echo "Deleting tag $tag"
+              git push origin --delete "refs/tags/$tag" || true
+            fi
+          done
+          echo "Remaining releases:"; gh release list --repo "$REPO"
+          echo "Finished. You can now delete this workflow file."
