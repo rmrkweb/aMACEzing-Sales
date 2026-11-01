@@ -2,9 +2,9 @@
 
 Manage your business. Grow your sales.
 
-This guide explains what aMACEzing Sales can do and how to use each part of the app. You can open it any time inside the app by tapping the **?** icon at the top right.
+This guide explains what aMACEzing Sales can do and how to use each part of it. It covers the Android app and the web version, which share the same data. You can open it any time by tapping the **?** icon at the top right.
 
-> Tip: set things up in this order: sign in, add your business, add your products, then record your first sale. The Home screen shows a checklist until all three are done.
+> Tip: set things up in this order: sign in, add your business, add your products, then record your first sale. The Home screen shows a checklist until all three are done, and each open step has a button that takes you straight there.
 
 ## Contents
 
@@ -22,6 +22,8 @@ This guide explains what aMACEzing Sales can do and how to use each part of the 
 - Cloud backup and sync
 - Security and privacy
 - About, updates and support
+- Using the web version
+- Installing the web version as an app
 - Questions and troubleshooting
 
 ---
@@ -49,6 +51,10 @@ The Home screen shows three steps until you finish them:
 2. **Add your products or services** (Inventory).
 3. **Record your first sale** (Sales).
 
+Each step that is not done yet has a button (Add business, Add products, New sale) that opens the right place. The second and third buttons wait until you have a business.
+
+Already have past orders in a spreadsheet? Use **Data Import** from your Profile page to bring them in instead of typing them again.
+
 You need at least one business before you can create orders, quotations or products.
 
 ---
@@ -56,9 +62,10 @@ You need at least one business before you can create orders, quotations or produ
 ## Finding your way around
 
 - **Bottom bar:** Home, Orders, Sales, Inventory and Settings.
-- **Top bar:** the **?** icon opens this guide, and your profile photo opens your Profile.
+- **Top bar:** the **?** icon opens this guide, and your profile photo opens your Profile. In a web browser that can install the app, an **install** icon appears next to the **?** icon.
 - **Profile page:** your account, business branding, shortcuts to Customers, Sales Reports and Data Import, the biometric lock and log out. The About page is reachable from Settings.
 - **Back:** use the back arrow on a page, or your phone's back gesture.
+- **Big screens:** on a tablet or computer the web version widens, shows more cards side by side, and puts the main menu in a bar down the left side.
 
 ---
 
@@ -115,7 +122,10 @@ Open **Customers** from your Profile page. The directory shows each customer wit
 
 - **Search** by name, phone or email.
 - Tap a customer to see their order history.
+- Use **Add** to create a customer with a name (required), contact number, email and notes. Use **Edit** or **Delete** on a customer card.
 - Customers are created automatically when you save an order with a new customer name, so you rarely need to add them by hand.
+- Renaming a customer does not change the name on orders that are already saved.
+- Deleting a customer keeps their orders in your records.
 
 ---
 
@@ -208,7 +218,7 @@ Open **Sales Reports** from your Profile page for detailed summaries. Use the bu
 - Customer sales and receivables summary
 - Business comparison
 
-Tap **Export** to save a report you can share or open in a spreadsheet.
+Tap **Export** to save a report you can share or open in a spreadsheet. The web version has the same four summaries and the same export.
 
 ---
 
@@ -245,6 +255,8 @@ Download the orders template and fill in one row per product line. The required 
 
 Use **Export** on the same screen to save your orders as a CSV file.
 
+The web version has the same import and export. Orders and products you import there appear in the app, and the other way round.
+
 ---
 
 ## Profile and branding
@@ -258,6 +270,8 @@ Open **Profile** from your photo at the top right.
 
 Tap **Save Profile** to apply. If you leave with unsaved changes, the app asks whether to keep editing or discard.
 
+The app and the web version use the same business profile and logo. Change it in one place and it appears in the other, and the PDFs from both use it.
+
 ---
 
 ## Cloud backup and sync
@@ -266,7 +280,10 @@ Your data is stored on your phone and backed up to your own account in the cloud
 
 - **When you sign in:** a loading screen appears while your backup is restored. If the connection is slow, the app continues with the data on your phone and syncs later.
 - **Sync to Cloud:** on the **About** page, tap this to upload everything now. The status (Cloud Synced, Syncing to Cloud, Saved Locally (Offline) or Sync Error) is shown there and on your Profile.
+- **Live updates:** while the app is open, changes made on the web or on another phone appear within a few seconds. They are also picked up when the app starts and when you come back to it.
 - **Working offline:** you can keep recording sales without internet. Changes are saved on the phone and uploaded when you are back online.
+- **What is shared:** businesses, products, customers, orders and payments, quotations, the profit mask setting and your business profile and logo. If two devices change the same record, the most recent change wins.
+- **Deleted records:** when you delete something, other devices are told so it disappears there too. The small deletion notes are cleaned up from the cloud after about three months.
 - **Logging out:** the app first backs up your data to the cloud, then clears this phone. Signing in again restores it. If the backup can't finish, the app tells you why before logging out.
 
 > Tip: tap **Sync to Cloud** after a busy day, before changing phones.
@@ -278,6 +295,7 @@ Your data is stored on your phone and backed up to your own account in the cloud
 - **Biometric lock:** on your Profile page, turn on the lock to require your fingerprint, face or device PIN each time you open the app.
 - **Mask profit values:** hide profit amounts on screen (see Businesses above).
 - **Your data:** each account only sees its own records. Logging out removes the data from the phone.
+- **Web privacy notice:** the web version asks once whether it may use Google Analytics to count visits. It is off unless you allow it, it never receives your sales, customers or other business records, and you can change your choice any time under **Settings**, **About**, **Privacy**. The Android app does not use analytics.
 
 ---
 
@@ -287,6 +305,32 @@ The **About** page shows the app version, the developer, **Sync to Cloud**, **Ch
 
 - **Check for Updates** looks for the latest release. The app also checks automatically every time it starts.
 - **Buy me a coffee:** if you like the app, this page shows a QR code. Save it, scan it with your bank or e-wallet app, and send a tip of any amount with a thankful message. Thank you!
+
+---
+
+## Using the web version
+
+You can also use aMACEzing Sales in a browser on Windows, Linux, Mac, iPhone, iPad or any other device: open `https://rmrkweb.github.io/amacezing-sales-web/` and sign in with the same Google account. It looks and works like the app, and it widens to use a tablet or computer screen.
+
+- **What you can do on the web:** almost everything the app does: Home, Sales, Inventory, Orders (quotations), Customers, Settings, Reports, Data Import and Export, and your Profile and branding. You can add, edit and delete records, create and edit orders, record payments, convert quotations to orders, and create PDF quotations and receipts to download or share.
+- **Changes sync both ways.** A change made on the web reaches the app within a few seconds while the app is open, and the app picks it up when it starts or when you come back to it. A change made in the app shows on the web as soon as the app has uploaded it.
+- **Deleting** an order, product, customer or quotation on one device removes it on the other devices too.
+- **Editing an order:** you can change the products, quantities, prices, discount and remarks, and you can cancel the order. The customer, date and recorded payments stay as they are; use **Pay** to add a payment.
+- **Working offline:** the web version opens without a connection once you have used it online. Changes are saved on your device and sent when you are back online.
+
+- **Only in the app:** the biometric lock, Duplicate order, Check for Updates and Sync to Cloud (the web version syncs by itself).
+
+> Tip: if you create orders on two devices while both are offline, they can end up with the same order number. Edit one in the app or on the web if that happens.
+
+---
+
+## Installing the web version as an app
+
+You can put the web version on your home screen so it opens full screen like an app.
+
+- **Android phones and computers (Chrome or Edge):** tap the **install** icon next to the **?** icon at the top, then tap **Install** in the box that appears.
+- **iPhone and iPad:** tap the Share button in your browser, choose **Add to Home Screen**, then tap **Add**. The install icon at the top shows the same steps.
+- If you do not see the install icon, the web version may already be installed, or your browser does not support installing.
 
 ---
 
@@ -311,6 +355,18 @@ Add a business first: **Settings**, then **Businesses**.
 ### My import has problems
 
 Read the list of problems under the summary. Each one names the row and what to fix. Fix the file and choose it again.
+
+### I can't sign in on my iPhone
+
+Open the web version in Safari (not inside another app) and turn off Private Browsing. Allow pop-ups for the site if your browser asks. If sign-in does not finish in the home-screen app, use the web version in Safari instead; your data is the same.
+
+### The install icon is missing
+
+The install icon only shows in browsers that can install the web version, and only while it is not installed yet. In Chrome or Edge, open the site in the browser itself (not inside another app). On iPhone, use Safari's Share button.
+
+### The web version shows old data
+
+Pull to refresh by reloading the page. The web version keeps a copy on your device so it opens offline; it updates as soon as it is online again.
 
 ### The guide won't load
 
