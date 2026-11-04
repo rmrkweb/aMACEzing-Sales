@@ -12,7 +12,11 @@ Get the latest APK from the [Releases](../../releases/latest) page and install i
 
 Learn what the app can do and how to use it: businesses, inventory, quotations, sales and payments, the dashboard, reports, importing data, cloud backup and security.
 
-Read the full guide in [Features And User Guide](FeaturesAndUserGuide.md). The same guide is available inside the app: tap the **?** icon at the top right.
+Read the full guide in [FeaturesAndUserGuide.md](FeaturesAndUserGuide.md). The same guide is available inside the app: tap the **?** icon at the top right.
+
+## Change Log (web app)
+
+What's new in the web app, by version, is in [CHANGE_LOGS.md](CHANGE_LOGS.md). It is also available on the web app under **Settings > Change Log**.
 
 ## Support the app
 
