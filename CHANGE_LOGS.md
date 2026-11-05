@@ -4,6 +4,26 @@ What changed in the aMACEzing Sales web app, newest first. Versions use the same
 
 ---
 
+## 26.11.5.1
+
+- **Stock tracking** in Inventory: count the units you have, and orders (web and app) take units off while restocks add them.
+- **Low-stock alerts:** set a level per product. Low and out-of-stock products show in Inventory (with a **Low stock** filter) and under **Low Stock** on Home.
+- **Restocks:** record units bought with the cost, supplier and date. The product's unit cost can follow the new cost automatically, and recent restocks can be deleted.
+- **Barcodes:** save a barcode on a product, then tap **Scan** in a new order to add it. Works with the camera where the browser supports it, with a typed code, or with a barcode scanner. Needs the new `stock` and `restocks` rules from `firestore.rules` to be published.
+
+## 26.11.4.3
+
+- **Receivables:** Home > Outstanding Receivables > **By customer** lists who owes you, with the age of each unpaid order (0-30, 31-60, 61-90, over 90 days), a **WhatsApp** reminder, a copyable reminder message and the customer's statement.
+- **Customer statement PDF:** in a customer's order history, a statement of account with every order, what was paid and the balance due.
+- **Refunds:** an order that was overpaid (after removing items) or cancelled after payment gets a **Refund** button. It is saved as a negative payment and the status follows it.
+- **Expenses:** record what the business spends by date, category and business, with totals by category. Home shows **Expenses** and **Net Profit** (hidden while profit is masked). Needs the new `expenses` rules from `firestore.rules` to be published.
+
+## 26.11.4.2
+
+- **Duplicate order** on the web: a new order with the same customer, items and discount, dated today, with no payment.
+- **Order numbers made on the web now carry a W** (ENG-2026-W0001), separate from the app's numbers, so orders made offline on both can never clash.
+- **Renaming a customer** now also renames them on their saved orders and quotations (web and Android).
+
 ## 26.11.4.1
 
 - **Change Log:** this page, under **Settings > Change Log**. It is loaded from the public repository, so new entries appear without a new build.
