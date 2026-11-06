@@ -9,7 +9,8 @@ What changed in the aMACEzing Sales web app, newest first. Versions use the same
 - **Stock tracking** in Inventory: count the units you have, and orders (web and app) take units off while restocks add them.
 - **Low-stock alerts:** set a level per product. Low and out-of-stock products show in Inventory (with a **Low stock** filter) and under **Low Stock** on Home.
 - **Restocks:** record units bought with the cost, supplier and date. The product's unit cost can follow the new cost automatically, and recent restocks can be deleted.
-- **Barcodes:** save a barcode on a product, then tap **Scan** in a new order to add it. Works with the camera where the browser supports it, with a typed code, or with a barcode scanner. Needs the new `stock` and `restocks` rules from `firestore.rules` to be published.
+- **Barcodes:** save a barcode on a product, then tap **Scan** in a new order to add it. Works with the camera where the browser supports it, with a typed code, or with a barcode scanner.
+- **Android app:** the same stock, low-stock alerts, restocks and barcode scanning are in the app, sharing the same data. Needs the new `stock` and `restocks` rules from `firestore.rules` to be published.
 
 ## 26.11.4.3
 

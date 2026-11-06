@@ -16,7 +16,7 @@ This guide explains what aMACEzing Sales can do and how to use each part of it. 
 - Orders (quotations)
 - Sales (orders and payments)
 - Receivables and expenses (web)
-- Stock, restocks and barcodes (web)
+- Stock, restocks and barcodes
 - Home dashboard
 - Reports
 - Import and export
@@ -219,16 +219,16 @@ Tap the **Expenses** card on Home (or open `#/expenses`) to record what the busi
 
 ---
 
-## Stock, restocks and barcodes (web)
+## Stock, restocks and barcodes
 
-Open **Inventory** to keep track of how many units of each product you have.
+Open **Products** in the app (**Inventory** on the web) to keep track of how many units of each product you have. The app and the web share the same stock.
 
 - **Stock:** tap **Stock** on a product and enter the units you have on hand now. From then on, every order (made on the web or in the app) takes its units off, a cancelled order gives them back, and restocks add units. Leave the number empty to stop tracking a product. Enter the same number again later to recount: the new number replaces the old count.
 - **Low-stock level:** set the number at which you want a warning. The product shows **Low stock** in Inventory, appears under **Low Stock** on Home, and is out of stock at zero. The **Low stock** chip in Inventory shows only these products.
 - **Restock:** tap **Restock** and enter how many units you bought, the cost per unit, the supplier and the date. By default the product's unit cost is set to the new cost, so future orders use it (turn the switch off to keep the old cost). The last five restocks are listed in the dialog, and you can delete a wrong one there.
-- **Barcode:** type or scan a barcode into the product's Stock dialog. In a new order, tap **Scan** to add that product (scanning it again adds one more unit). Camera scanning works in browsers that have a barcode reader, such as Chrome on Android. Elsewhere, such as iPhone Safari, type the code in the box, or use a USB or Bluetooth barcode scanner, which types the code for you.
+- **Barcode:** type or scan a barcode into the product's Stock dialog. In a new order, tap **Scan** to add that product (scanning it again adds one more unit). In the app, **Scan** opens Google's barcode scanner (it needs Google Play services and no extra permission). On the web, camera scanning works in browsers that have a barcode reader, such as Chrome on Android. Elsewhere, such as iPhone Safari, type the code in the box, or use a USB or Bluetooth barcode scanner, which types the code for you.
 
-Good to know: stock is counted from orders dated after your count, so orders you back-date to before the count are not taken off. Custom items (not picked from the product list) never use stock. The app does not show stock yet, but its orders are counted.
+Good to know: stock is counted from orders dated after your count, so orders you back-date to before the count are not taken off. Custom items (not picked from the product list) never use stock.
 
 ---
 
@@ -359,7 +359,7 @@ You can also use aMACEzing Sales in a browser on Windows, Linux, Mac, iPhone, iP
 - **Working offline:** the web version opens without a connection once you have used it online. Changes are saved on your device and sent when you are back online.
 
 - **Only in the app:** the biometric lock, Check for Updates and Sync to Cloud (the web version syncs by itself).
-- **Only on the web for now:** Receivables, statements, refunds, expenses, and stock tracking with restocks and barcodes. The app shows refunds as negative payments but does not have the other screens yet.
+- **Only on the web for now:** Receivables, statements, refunds and expenses. The app shows refunds as negative payments. The app shows refunds as negative payments but does not have the other screens yet.
 
 > Tip: orders made on the web are numbered with a W (ENG-2026-W0001) and the app's orders stay ENG-2026-0001, so orders made offline on both can never clash. Two phones on the same account that are both offline can still give the same number.
 
