@@ -15,7 +15,7 @@ This guide explains what aMACEzing Sales can do and how to use each part of it. 
 - Customers
 - Orders (quotations)
 - Sales (orders and payments)
-- Receivables and expenses (web)
+- Receivables and expenses
 - Stock, restocks and barcodes
 - Home dashboard
 - Reports
@@ -131,7 +131,7 @@ Open **Customers** from your Profile page. The directory shows each customer wit
 - Use **Add** to create a customer with a name (required), contact number, email and notes. Use **Edit** or **Delete** on a customer card.
 - Customers are created automatically when you save an order with a new customer name, so you rarely need to add them by hand.
 - Renaming a customer also changes the name on their saved orders and quotations.
-- On the web, open a customer's order history and tap **Statement PDF** for a statement of account: all their orders (cancelled ones left out), what was paid and the balance due.
+- Open a customer's order history and tap **Statement PDF** (the PDF icon in the app) for a statement of account: all their orders (cancelled ones left out), what was paid and the balance due.
 - Deleting a customer keeps their orders in your records.
 
 ---
@@ -189,7 +189,7 @@ Tap an order to open its details. From there you can:
 - **Receipt:** create a receipt PDF to share or print.
 - **Duplicate:** create a new order with the same customer, items and discount, dated today, with no payment yet. The remarks say which order it was copied from.
 - **Pay:** record a payment. Enter the amount, choose the payment method (for example Cash, GCash, Bank Transfer or Check), and add a reference number or notes if you like. The balance and status update automatically.
-- **Refund (web):** appears when an order was paid more than it needs (for example after you removed items) or was cancelled after payment. Enter the amount, up to what can be given back. It is saved as a negative payment, so the paid amount, balance and status follow it. To handle a return, first **Edit** the order to remove the returned items, then record the refund.
+- **Refund:** appears when an order was paid more than it needs (for example after you removed items) or was cancelled after payment. Enter the amount, up to what can be given back. It is saved as a negative payment, so the paid amount, balance and status follow it. To handle a return, first **Edit** the order to remove the returned items, then record the refund.
 - **Edit** or **Delete** the order.
 
 ### Finding orders
@@ -201,7 +201,9 @@ Tap an order to open its details. From there you can:
 
 ---
 
-## Receivables and expenses (web)
+## Receivables and expenses
+
+These work the same in the app and on the web, and share the same data.
 
 ### Receivables
 
@@ -215,7 +217,7 @@ The page follows the business chosen on Home, not the period, and it uses your s
 
 ### Expenses
 
-Tap the **Expenses** card on Home (or open `#/expenses`) to record what the business spends. Each expense has a date, a category (Supplies, Rent, Utilities, Salaries, Transport, Marketing, Equipment or Other), an amount, the business it belongs to (or General) and notes. The list follows the business and period chosen on Home and shows totals by category. General expenses count under All businesses only. Home shows **Expenses** and **Net Profit** (estimated profit minus the expenses of the same period); Net Profit is hidden while **Mask Profit Values** is on.
+Tap the **Expenses** card on Home (on the web you can also open `#/expenses`) to record what the business spends. Each expense has a date, a category (Supplies, Rent, Utilities, Salaries, Transport, Marketing, Equipment or Other), an amount, the business it belongs to (or General) and notes. The list follows the business and period chosen on Home and shows totals by category. General expenses count under All businesses only. Home shows **Expenses** and **Net Profit** (estimated profit minus the expenses of the same period); Net Profit is hidden while **Mask Profit Values** is on.
 
 ---
 
@@ -359,7 +361,6 @@ You can also use aMACEzing Sales in a browser on Windows, Linux, Mac, iPhone, iP
 - **Working offline:** the web version opens without a connection once you have used it online. Changes are saved on your device and sent when you are back online.
 
 - **Only in the app:** the biometric lock, Check for Updates and Sync to Cloud (the web version syncs by itself).
-- **Only on the web for now:** Receivables, statements, refunds and expenses. The app shows refunds as negative payments. The app shows refunds as negative payments but does not have the other screens yet.
 
 > Tip: orders made on the web are numbered with a W (ENG-2026-W0001) and the app's orders stay ENG-2026-0001, so orders made offline on both can never clash. Two phones on the same account that are both offline can still give the same number.
 

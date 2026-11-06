@@ -18,6 +18,7 @@ What changed in the aMACEzing Sales web app, newest first. Versions use the same
 - **Customer statement PDF:** in a customer's order history, a statement of account with every order, what was paid and the balance due.
 - **Refunds:** an order that was overpaid (after removing items) or cancelled after payment gets a **Refund** button. It is saved as a negative payment and the status follows it.
 - **Expenses:** record what the business spends by date, category and business, with totals by category. Home shows **Expenses** and **Net Profit** (hidden while profit is masked). Needs the new `expenses` rules from `firestore.rules` to be published.
+- **Android app:** receivables, customer statements, refunds and expenses are in the app too, using the same data.
 
 ## 26.11.4.2
 
