@@ -16,6 +16,7 @@ This guide explains what aMACEzing Sales can do and how to use each part of it. 
 - Orders (quotations)
 - Sales (orders and payments)
 - Receivables and expenses
+- Insights
 - Stock, restocks and barcodes
 - Home dashboard
 - Reports
@@ -231,6 +232,17 @@ Open **Products** in the app (**Inventory** on the web) to keep track of how man
 - **Barcode:** type or scan a barcode into the product's Stock dialog. In a new order, tap **Scan** to add that product (scanning it again adds one more unit). In the app, **Scan** opens Google's barcode scanner (it needs Google Play services and no extra permission). On the web, camera scanning works in browsers that have a barcode reader, such as Chrome on Android. Elsewhere, such as iPhone Safari, type the code in the box, or use a USB or Bluetooth barcode scanner, which types the code for you.
 
 Good to know: stock is counted from orders dated after your count, so orders you back-date to before the count are not taken off. Custom items (not picked from the product list) never use stock.
+
+---
+
+## Insights
+
+Tap the **Insights** card on Home. It follows the business and period chosen on Home, and it works the same in the app and on the web.
+
+- **Profit after expenses:** net sales, estimated profit, expenses, net profit and net margin for the period, with the expenses split by category. Profit, net profit and margin show as dots while **Mask Profit Values** is on.
+- **This month vs last month:** this month so far against the same days of last month (so the comparison is fair), with the change in percent, plus last month in full. It shows net sales, orders, average order and expenses, and also estimated profit and net profit unless profit is masked. For expenses, going down shows as the good direction.
+- **Top products:** the best sellers of the period by sales or by units sold, with the number of orders and the share of product sales. Sales are before order discounts, like the product chart on Home.
+- **Best customers:** the top customers by net sales, with their orders, average order, last order date, share of sales and what they still owe. Orders with no customer name and cancelled orders are left out.
 
 ---
 

@@ -4,6 +4,10 @@ What changed in the aMACEzing Sales web app, newest first. Versions use the same
 
 ---
 
+## 26.11.7.1
+
+- **Insights** (Home > Insights): profit after expenses with the expenses by category, this month against the same days of last month (and last month in full), top products by sales or units, and best customers. Profit rows are hidden while profit is masked. The Android app has the same screen.
+
 ## 26.11.5.1
 
 - **Stock tracking** in Inventory: count the units you have, and orders (web and app) take units off while restocks add them.
