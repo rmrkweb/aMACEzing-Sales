@@ -233,6 +233,17 @@ Open **Products** in the app (**Inventory** on the web) to keep track of how man
 
 Good to know: stock is counted from orders dated after your count, so orders you back-date to before the count are not taken off. Custom items (not picked from the product list) never use stock.
 
+### Materials and recipes
+
+Some products share raw materials. For example, a Sintra board print uses a sheet of board, ink, plastic packaging and double-sided tape, and an A4 print uses half of an A3 sheet. Materials let you track those instead (or as well as) the finished products.
+
+- **Materials:** in Products (Inventory on the web), open the **Materials** tab and tap **Add**. Give each raw material a name, a unit (sheet, ml, pc, roll...), its cost per unit, how many you have now, and a low-stock level. Counting, restocking and low-stock warnings work like they do for products.
+- **Recipe:** on a product, tap **Materials** and say how much of each material **one** unit of the product uses. For example: A3 print = 1 sheet of board; A4 print = 0.5 sheet of board; both = 3 ml of ink, 1 packaging, 10 cm of tape.
+- **Stock:** every sale takes the recipe's materials off, so 6 A4 prints take 3 sheets of board off. Cancelled orders give them back, and orders from the app and the web both count. Products without a recipe and custom items use nothing.
+- **Alerts:** a material that is low or out of stock shows under **Low Stock** on Home, with the products, and in the Materials tab.
+- **Restock a material:** tap **Restock** to record units bought, the cost per unit, the supplier and the date. The material's cost per unit can follow the new cost, and a wrong restock can be deleted in the same dialog.
+- **Materials cost:** the recipe dialog shows what one unit costs in materials. Switch on **Set the product's unit cost to the materials cost** to use it for profit.
+
 ---
 
 ## Insights

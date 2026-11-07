@@ -4,6 +4,10 @@ What changed in the aMACEzing Sales web app, newest first. Versions use the same
 
 ---
 
+## 26.11.7.2
+
+- **Materials and recipes:** track the raw materials products share (board, ink, packaging, tape) with their own stock, restocks and low-stock alerts, and say how much of each one unit of a product uses (an A4 print uses 0.5 of an A3 sheet). Sales take the materials off automatically, low materials show on Home, and the materials cost can set a product's unit cost. Needs the new `materials`, `recipes` and `materialRestocks` rules from `firestore.rules` to be published. The Android app has the same screens.
+
 ## 26.11.7.1
 
 - **Insights** (Home > Insights): profit after expenses with the expenses by category, this month against the same days of last month (and last month in full), top products by sales or units, and best customers. Profit rows are hidden while profit is masked. The Android app has the same screen.
