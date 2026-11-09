@@ -216,6 +216,14 @@ On **Home**, under Outstanding Receivables, tap **By customer**. The page lists 
 
 The page follows the business chosen on Home, not the period, and it uses your saved orders, so payments recorded in the app show up too.
 
+### Overdue payments and phone alerts
+
+- **Payment due after:** in **Settings**, set after how many days an unpaid order counts as overdue (7 by default, 1 to 365). It is saved with your account, so the app and the web use the same number.
+- **Overdue on Home and Receivables:** unpaid orders older than that show as **OVERDUE** in Receivables, with the overdue total at the top, and Home shows an overdue card that opens Receivables.
+- **Daily phone alerts (app only):** in the app, go to **Settings > Notifications** and turn on **Daily alerts**. Once a day (9:00 AM by default, you can change the hour) the phone checks for low or out-of-stock products and materials and for overdue payments, and sends a notification for anything new, even when the app is closed. Tapping it opens Products or Receivables. The same items are not repeated every day: you are told again when something new needs attention, or after a week if it is still unresolved.
+- **First time:** Android 13 and newer asks for permission to show notifications. Use **Send test notification** to check that alerts reach your phone. Some phones delay background work to save battery. If alerts arrive late, allow the app to run in the background in the phone's battery settings.
+- **Web:** the web app cannot send phone alerts, but its Home screen shows the same Low Stock and overdue cards.
+
 ### Expenses
 
 Tap the **Expenses** card on Home (on the web you can also open `#/expenses`) to record what the business spends. Each expense has a date, a category (Supplies, Rent, Utilities, Salaries, Transport, Marketing, Equipment or Other), an amount, the business it belongs to (or General) and notes. The list follows the business and period chosen on Home and shows totals by category. General expenses count under All businesses only. Home shows **Expenses** and **Net Profit** (estimated profit minus the expenses of the same period); Net Profit is hidden while **Mask Profit Values** is on.
