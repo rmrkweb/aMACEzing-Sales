@@ -4,6 +4,10 @@ What changed in the aMACEzing Sales web app, newest first. Versions use the same
 
 ---
 
+## 26.11.24.1
+
+- **First business:** creating an order, quotation or product before adding a business now opens Settings with the Add business form, then takes you back to what you were doing.
+
 ## 26.11.9.1
 
 - **Overdue payments:** a new **Payment due after** setting (default 7 days) marks unpaid orders as overdue in Receivables and adds an overdue card on Home. The Android app also sends a daily phone notification for low stock and overdue payments.
